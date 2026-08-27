@@ -1,0 +1,42 @@
+---
+import { formatNumber } from '../utils/format.js';
+
+/**
+ * Static SVG progression line chart — no client JS needed, renders at build time.
+ * @typedef {Object} Props
+ * @property {string} lang
+ * @property {number[]} values
+ */
+const { lang, values } = Astro.props;
+
+const width = 640;
+const height = 200;
+const padX = 28;
+const padY = 28;
+const min = Math.min(...values);
+const max = Math.max(...values);
+const range = max - min || 1;
+
+const points = values.map((v, i) => {
+  const x = padX + (i / (values.length - 1)) * (width - padX * 2);
+  const y = height - padY - ((v - min) / range) * (height - padY * 2);
+  return { x, y, v };
+});
+
+const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+---
+
+<div>
+  <svg viewBox={`0 0 ${width} ${height}`} class="w-full" role="img" aria-label={values.map((v) => formatNumber(lang, v)).join(' → ')}>
+    <line x1={padX} y1={height - padY} x2={width - padX} y2={height - padY} stroke="currentColor" class="text-base-300" stroke-width="1" />
+    <path d={path} fill="none" stroke="currentColor" class="text-primary" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    {points.map((p) => (
+      <circle cx={p.x} cy={p.y} r="5" class="fill-primary" />
+    ))}
+    {points.map((p) => (
+      <text x={p.x} y={p.y - 14} text-anchor="middle" class="fill-current font-stat text-[15px] font-bold">
+        {formatNumber(lang, p.v)}
+      </text>
+    ))}
+  </svg>
+</div>

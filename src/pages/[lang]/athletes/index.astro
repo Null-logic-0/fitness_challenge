@@ -1,0 +1,48 @@
+---
+export const prerender = false;
+
+import Layout from '../../../layouts/Layout.astro';
+import Navbar from '../../../components/Navbar.astro';
+import AthleteCard from '../../../components/AthleteCard.astro';
+import Footer from '../../../components/Footer.astro';
+import { useTranslations } from '../../../i18n/utils.js';
+import { supabase } from '../../../db/supabase.js';
+
+const { lang } = Astro.params;
+const t = useTranslations(lang);
+
+const { data } = await supabase
+  .from('leaderboard')
+  .select('user_id, username, display_name, country, total')
+  .order('total', { ascending: false })
+  .limit(100);
+
+const athletes = (data ?? []).map((row, i) => ({
+  handle: row.username,
+  name: row.display_name,
+  country: row.country,
+  total: row.total,
+  rank: i + 1,
+}));
+---
+
+<Layout lang={lang} title={`${t('nav.athletes')} — 5MIN`} description={t('leaderboard.subtitle')} path="/athletes">
+  <Navbar lang={lang} path="/athletes" />
+  <main id="main-content" class="mx-auto max-w-4xl px-4 py-10 sm:px-6 md:py-14">
+    <p class="font-stat text-xs font-semibold tracking-[0.2em] text-primary">{t('leaderboard.eyebrow')}</p>
+    <h1 class="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">{t('nav.athletes')}</h1>
+
+    {athletes.length === 0 ? (
+      <p class="mt-10 rounded-box border border-base-300 bg-base-200 p-10 text-center text-sm text-base-content/60">
+        {t('leaderboard.noResults')}
+      </p>
+    ) : (
+      <div class="mt-8 grid gap-3 sm:grid-cols-2">
+        {athletes.map((athlete) => (
+          <AthleteCard lang={lang} athlete={athlete} />
+        ))}
+      </div>
+    )}
+  </main>
+  <Footer lang={lang} />
+</Layout>

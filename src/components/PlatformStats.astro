@@ -1,0 +1,33 @@
+---
+import { useTranslations } from '../i18n/utils.js';
+import StatsCard from './StatsCard.astro';
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+
+const tiles = [
+  { key: 'athletes', label: t('stats.athletes') },
+  { key: 'attempts', label: t('stats.attempts') },
+  { key: 'currentRecord', label: t('stats.currentRecord') },
+  { key: 'averageScore', label: t('stats.averageScore') },
+];
+---
+
+<section id="platform-stats" data-lang={lang} class="border-b border-base-300 bg-base-100">
+  <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-24">
+    <p class="font-stat text-xs font-semibold tracking-[0.2em] text-primary">{t('stats.eyebrow')}</p>
+    <h2 class="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">{t('stats.title')}</h2>
+
+    <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {tiles.map((tile) => (
+        <StatsCard statKey={tile.key} label={tile.label} />
+      ))}
+    </div>
+  </div>
+</section>
+
+<script>
+  import { initPlatformStats } from '../scripts/platform-stats.js';
+  const root = document.getElementById('platform-stats');
+  if (root) initPlatformStats(root);
+</script>

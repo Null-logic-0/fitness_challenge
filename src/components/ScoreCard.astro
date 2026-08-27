@@ -1,0 +1,32 @@
+---
+import { formatNumber } from '../utils/format.js';
+
+/**
+ * Big-number score display shared by the submission success screen,
+ * athlete profile hero stat, and share card preview.
+ * @typedef {Object} Props
+ * @property {string} lang
+ * @property {number} total
+ * @property {number} [pullUps]
+ * @property {number} [dips]
+ * @property {string} totalLabel
+ * @property {string} [pullUpsLabel]
+ * @property {string} [dipsLabel]
+ * @property {string} [size] - 'lg' (default) | 'xl'
+ */
+const { lang, total, pullUps, dips, totalLabel, pullUpsLabel, dipsLabel, size = 'lg' } = Astro.props;
+const totalSize = size === 'xl' ? 'text-8xl sm:text-9xl' : 'text-6xl sm:text-7xl';
+const showBreakdown = pullUps != null && dips != null;
+---
+
+<div class="text-center">
+  <p class={`font-stat font-bold ${totalSize}`}>{formatNumber(lang, total)}</p>
+  <p class="mt-1 text-xs font-semibold uppercase tracking-wider text-base-content/50">{totalLabel}</p>
+
+  {showBreakdown && (
+    <div class="mt-5 flex justify-center gap-8 text-sm">
+      <p><span class="font-stat font-bold">{formatNumber(lang, pullUps)}</span> {pullUpsLabel}</p>
+      <p><span class="font-stat font-bold">{formatNumber(lang, dips)}</span> {dipsLabel}</p>
+    </div>
+  )}
+</div>

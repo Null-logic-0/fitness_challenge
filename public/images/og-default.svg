@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#161616"/>
+  <rect x="0" y="0" width="1200" height="630" fill="none" stroke="#2b2b2f" stroke-width="2"/>
+  <text x="80" y="140" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#ec5a25" letter-spacing="6">5-MINUTE CHALLENGE</text>
+  <text x="78" y="330" font-family="Arial, sans-serif" font-size="220" font-weight="800" fill="#f5f5f5">92</text>
+  <text x="80" y="380" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#a0a0a5" letter-spacing="4">TOTAL REPS</text>
+  <text x="80" y="470" font-family="Arial, sans-serif" font-size="26" fill="#f5f5f5">41 PULL-UPS&#160;&#160;&#160;&#160;51 DIPS</text>
+  <text x="80" y="560" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#ec5a25">CAN YOU BEAT ME?</text>
+</svg>

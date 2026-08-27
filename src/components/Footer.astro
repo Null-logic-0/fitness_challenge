@@ -1,0 +1,54 @@
+---
+import { useTranslations, getLocalizedPath } from '../i18n/utils.js';
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const year = new Date().getFullYear();
+
+const columns = [
+  {
+    title: t('footer.product'),
+    links: [
+      { href: getLocalizedPath(lang, '/challenge'), label: t('nav.challenge') },
+      { href: getLocalizedPath(lang, '/leaderboard'), label: t('nav.leaderboard') },
+      { href: getLocalizedPath(lang, '/submit'), label: t('submit.title') },
+    ],
+  },
+  {
+    title: t('footer.company'),
+    links: [
+      { href: `${getLocalizedPath(lang, '/')}#how-it-works`, label: t('nav.howItWorks') },
+      { href: `${getLocalizedPath(lang, '/')}#rules`, label: t('rules.title') },
+    ],
+  },
+];
+---
+
+<footer class="border-t border-base-300 bg-base-100">
+  <div class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+    <div class="grid gap-10 md:grid-cols-[2fr_1fr_1fr]">
+      <div>
+        <a href={getLocalizedPath(lang, '/')} class="font-stat text-xl font-bold tracking-tight focus-ring rounded-field">
+          {t('nav.brand')}
+        </a>
+        <p class="mt-3 max-w-xs text-sm text-base-content/60">{t('footer.tagline')}</p>
+      </div>
+
+      {columns.map((col) => (
+        <div>
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/50">{col.title}</h3>
+          <ul class="mt-3 space-y-2">
+            {col.links.map((link) => (
+              <li><a href={link.href} class="text-sm text-base-content/80 hover:text-primary focus-ring rounded-field">{link.label}</a></li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+
+    <div class="mt-10 flex flex-col gap-2 border-t border-base-300 pt-6 text-xs text-base-content/50 sm:flex-row sm:items-center sm:justify-between">
+      <p>© {year} 5-Minute Challenge. {t('footer.rights')}</p>
+      <p>{t('footer.builtBy')}</p>
+    </div>
+  </div>
+</footer>

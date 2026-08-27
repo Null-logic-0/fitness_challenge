@@ -1,0 +1,22 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import AuthCard from '../../components/AuthCard.astro';
+import Footer from '../../components/Footer.astro';
+import { useTranslations, localizedStaticPaths } from '../../i18n/utils.js';
+
+export function getStaticPaths() {
+  return localizedStaticPaths();
+}
+
+const { lang } = Astro.params;
+const t = useTranslations(lang);
+---
+
+<Layout lang={lang} title={`${t('auth.loginTitle')} — 5MIN`} description={t('auth.loginSubtitle')} path="/login">
+  <Navbar lang={lang} path="/login" />
+  <main id="main-content" class="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+    <AuthCard lang={lang} mode="login" />
+  </main>
+  <Footer lang={lang} />
+</Layout>

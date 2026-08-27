@@ -1,0 +1,30 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import ChallengeTimer from '../../components/ChallengeTimer.astro';
+import Footer from '../../components/Footer.astro';
+import { useTranslations, localizedStaticPaths } from '../../i18n/utils.js';
+
+export function getStaticPaths() {
+  return localizedStaticPaths();
+}
+
+const { lang } = Astro.params;
+const t = useTranslations(lang);
+---
+
+<Layout lang={lang} title={`${t('challenge.title')} — 5MIN`} description={t('challenge.subtitle')} path="/challenge">
+  <Navbar lang={lang} path="/challenge" />
+  <main id="main-content" class="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+    <div class="mx-auto max-w-lg text-center">
+      <p class="font-stat text-xs font-semibold tracking-[0.2em] text-primary">{t('challenge.eyebrow')}</p>
+      <h1 class="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">{t('challenge.title')}</h1>
+      <p class="mt-1 text-base-content/60">{t('challenge.subtitle')}</p>
+    </div>
+
+    <div class="mt-8">
+      <ChallengeTimer lang={lang} />
+    </div>
+  </main>
+  <Footer lang={lang} />
+</Layout>

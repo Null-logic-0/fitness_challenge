@@ -1,0 +1,53 @@
+---
+import { locales, localeNames, getLocalizedPath } from '../i18n/utils.js';
+
+/**
+ * @typedef {Object} Props
+ * @property {string} lang - active locale
+ * @property {string} path - unlocalized path, e.g. '/leaderboard'
+ * @property {'dropdown'|'inline'} [variant]
+ */
+const { lang, path = '/', variant = 'dropdown' } = Astro.props;
+---
+
+{variant === 'dropdown' ? (
+  <details class="dropdown dropdown-end">
+    <summary
+      class="btn btn-sm btn-ghost gap-1 focus-ring"
+      aria-label="Change language"
+    >
+      <span class="uppercase">{lang}</span>
+      <svg viewBox="0 0 12 8" class="h-2.5 w-2.5 fill-current" aria-hidden="true"><path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" /></svg>
+    </summary>
+    <ul class="menu dropdown-content z-20 mt-2 w-44 rounded-box bg-base-200 p-2 shadow-lg border border-base-300">
+      {locales.map((locale) => (
+        <li>
+          <a
+            href={getLocalizedPath(locale, path)}
+            aria-current={locale === lang ? 'true' : undefined}
+            class={locale === lang ? 'active font-semibold' : ''}
+          >
+            {localeNames[locale]}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </details>
+) : (
+  <div>
+    <p class="px-4 pt-2 pb-1 text-xs font-semibold uppercase tracking-wider text-base-content/50">Language</p>
+    <ul class="menu w-full gap-0.5">
+      {locales.map((locale) => (
+        <li>
+          <a
+            href={getLocalizedPath(locale, path)}
+            aria-current={locale === lang ? 'true' : undefined}
+            class={locale === lang ? 'active font-semibold' : ''}
+          >
+            {localeNames[locale]}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+)}

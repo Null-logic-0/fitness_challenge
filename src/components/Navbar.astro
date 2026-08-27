@@ -1,0 +1,113 @@
+---
+import { useTranslations, getLocalizedPath } from '../i18n/utils.js';
+import LanguageSwitcher from './LanguageSwitcher.astro';
+
+/**
+ * @typedef {Object} Props
+ * @property {string} lang
+ * @property {string} path - unlocalized current path, used for the language switcher and active-link state
+ */
+const { lang, path = '/' } = Astro.props;
+const t = useTranslations(lang);
+
+const links = [
+  { href: getLocalizedPath(lang, '/challenge'), label: t('nav.challenge') },
+  { href: getLocalizedPath(lang, '/leaderboard'), label: t('nav.leaderboard') },
+  { href: `${getLocalizedPath(lang, '/')}#how-it-works`, label: t('nav.howItWorks') },
+];
+
+const loginPath = `${getLocalizedPath(lang, '/login')}?redirect=${encodeURIComponent(getLocalizedPath(lang, path))}`;
+const mePath = getLocalizedPath(lang, '/me');
+---
+
+<div class="drawer">
+  <input id="mobile-nav-toggle" type="checkbox" class="drawer-toggle" />
+  <div class="drawer-content">
+    <header class="sticky top-0 z-30 border-b border-base-300 bg-base-100/90 backdrop-blur">
+      <nav class="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6" aria-label="Primary">
+        <a href={getLocalizedPath(lang, '/')} class="font-stat text-xl font-bold tracking-tight focus-ring rounded-field">
+          {t('nav.brand')}
+        </a>
+
+        <ul class="hidden items-center gap-1 md:flex">
+          {links.map((link) => (
+            <li>
+              <a href={link.href} class="btn btn-sm btn-ghost focus-ring">{link.label}</a>
+            </li>
+          ))}
+        </ul>
+
+        <div class="hidden items-center gap-2 md:flex">
+          <LanguageSwitcher lang={lang} path={path} variant="dropdown" />
+
+          <a data-auth-state="guest" href={loginPath} class="btn btn-sm btn-ghost focus-ring">
+            {t('nav.login')}
+          </a>
+
+          <details data-auth-state="user" hidden class="dropdown dropdown-end">
+            <summary class="btn btn-sm btn-ghost gap-2 focus-ring">
+              <span class="avatar avatar-placeholder">
+                <span class="w-6 rounded-full bg-base-300 text-[10px] font-semibold" data-user-initial>•</span>
+              </span>
+              <span class="max-w-[8rem] truncate" data-user-name></span>
+            </summary>
+            <ul class="menu dropdown-content z-20 mt-2 w-48 rounded-box bg-base-200 p-2 shadow-lg border border-base-300">
+              <li><a href={mePath}>{t('nav.myResults')}</a></li>
+              <li><button type="button" data-action="logout">{t('nav.logout')}</button></li>
+            </ul>
+          </details>
+
+          <a href={getLocalizedPath(lang, '/challenge')} class="btn btn-sm btn-primary focus-ring">
+            {t('nav.start')}
+          </a>
+        </div>
+
+        <label
+          for="mobile-nav-toggle"
+          class="btn btn-square btn-ghost focus-ring md:hidden"
+          aria-label={t('nav.menu')}
+        >
+          <svg viewBox="0 0 24 24" class="h-5 w-5 stroke-current" fill="none" aria-hidden="true">
+            <path stroke-width="2" stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </label>
+      </nav>
+    </header>
+  </div>
+
+  <div class="drawer-side z-40">
+    <label for="mobile-nav-toggle" aria-label="Close menu" class="drawer-overlay"></label>
+    <div class="flex h-full w-72 flex-col gap-4 bg-base-200 p-4">
+      <div class="flex items-center justify-between">
+        <span class="font-stat text-lg font-bold">{t('nav.brand')}</span>
+        <label for="mobile-nav-toggle" class="btn btn-sm btn-circle btn-ghost focus-ring" aria-label={t('common.close')}>✕</label>
+      </div>
+      <ul class="menu w-full gap-0.5">
+        {links.map((link) => (
+          <li><a href={link.href}>{link.label}</a></li>
+        ))}
+      </ul>
+      <a href={getLocalizedPath(lang, '/challenge')} class="btn btn-primary w-full focus-ring">
+        {t('nav.start')}
+      </a>
+
+      <a data-auth-state="guest" href={loginPath} class="btn btn-outline w-full focus-ring">
+        {t('nav.login')}
+      </a>
+
+      <div data-auth-state="user" hidden class="flex flex-col gap-2">
+        <a href={mePath} class="btn btn-outline w-full focus-ring">{t('nav.myResults')}</a>
+        <button type="button" data-action="logout" class="btn btn-ghost w-full focus-ring">{t('nav.logout')}</button>
+      </div>
+
+      <div class="mt-auto border-t border-base-300 pt-2">
+        <LanguageSwitcher lang={lang} path={path} variant="inline" />
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { initNavAuth } from '../scripts/nav-auth.js';
+  initNavAuth();
+</script>

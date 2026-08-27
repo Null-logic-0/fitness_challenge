@@ -1,0 +1,102 @@
+---
+import { useTranslations, getLocalizedPath } from '../i18n/utils.js';
+import { formatNumber } from '../utils/format.js';
+import { buildShareText, buildLinkedInShareUrl, buildXShareUrl } from '../scripts/share.js';
+
+/**
+ * @typedef {Object} Props
+ * @property {string} lang
+ * @property {number} total
+ * @property {number} pullUps
+ * @property {number} dips
+ * @property {boolean} [isPersonalBest]
+ * @property {string} shareUrl - absolute URL of the profile/result being shared
+ * @property {string} [resultId] - when set, shows an "Invite friends" button that challenges others to beat this result
+ */
+const { lang, total, pullUps, dips, isPersonalBest = true, shareUrl, resultId } = Astro.props;
+const t = useTranslations(lang);
+
+const shareText = buildShareText({
+  title: t('share.title'),
+  total,
+  totalLabel: t('share.totalRepsLabel'),
+  pullUps,
+  dips,
+  pullUpsLabel: t('challenge.pullUps'),
+  dipsLabel: t('challenge.dips'),
+  isPersonalBest,
+  personalBestLabel: t('share.personalBest'),
+  canYouBeatLabel: t('share.canYouBeat'),
+});
+
+const linkedInUrl = buildLinkedInShareUrl(shareUrl);
+const xUrl = buildXShareUrl(shareUrl, shareText);
+const inviteBasePath = getLocalizedPath(lang, '/challenge/invite');
+const loginPath = getLocalizedPath(lang, '/login');
+
+const inviteConfig = resultId
+  ? JSON.stringify({ resultId, inviteBasePath, loginPath, generatingLabel: t('social.inviteGenerating') })
+  : null;
+---
+
+<div data-share-card data-share-text={shareText} data-share-url={shareUrl}>
+  <div class="mx-auto max-w-sm rounded-box border border-base-300 bg-gradient-to-b from-base-200 to-base-100 p-8 text-center shadow-lg">
+    <p class="font-stat text-xs font-bold tracking-[0.25em] text-primary">{t('share.title').toUpperCase()}</p>
+
+    <p class="font-stat mt-6 text-7xl font-bold">{formatNumber(lang, total)}</p>
+    <p class="text-xs font-semibold uppercase tracking-wider text-base-content/50">{t('share.totalRepsLabel')}</p>
+
+    <div class="mt-6 flex justify-center gap-8 text-sm">
+      <p><span class="font-stat font-bold">{formatNumber(lang, pullUps)}</span> {t('challenge.pullUps')}</p>
+      <p><span class="font-stat font-bold">{formatNumber(lang, dips)}</span> {t('challenge.dips')}</p>
+    </div>
+
+    {isPersonalBest && (
+      <span class="badge badge-primary badge-lg mt-6 font-semibold">{t('share.personalBest')}</span>
+    )}
+
+    <p class="mt-6 text-sm font-semibold text-base-content/70">{t('share.canYouBeat')}</p>
+  </div>
+
+  <div class="mx-auto mt-6 grid max-w-sm grid-cols-2 gap-3">
+    <a href={linkedInUrl} target="_blank" rel="noopener noreferrer" class="btn btn-primary col-span-2 focus-ring">
+      {t('share.shareLinkedIn')}
+    </a>
+    <a href={xUrl} target="_blank" rel="noopener noreferrer" class="btn btn-outline focus-ring">
+      {t('share.shareX')}
+    </a>
+    <button type="button" data-action="copy" data-copied-label={t('share.copied')} class="btn btn-outline focus-ring">
+      <span data-copy-label>{t('share.copyResult')}</span>
+    </button>
+    <button type="button" data-action="copy-link" data-copied-label={t('share.linkCopied')} class="btn btn-ghost focus-ring">
+      <span data-copy-label>{t('share.copyLink')}</span>
+    </button>
+    {resultId && (
+      <button
+        type="button"
+        data-action="invite"
+        data-invite-config={inviteConfig}
+        data-copied-label={t('share.linkCopied')}
+        class="btn btn-ghost focus-ring"
+      >
+        <span data-copy-label>{t('social.inviteFriends')}</span>
+      </button>
+    )}
+  </div>
+</div>
+
+<script>
+  import { initShareCard, wireCopyButton } from '../scripts/share.js';
+  import { wireInviteButton } from '../scripts/invite.js';
+
+  document.querySelectorAll('[data-share-card]').forEach((el) => {
+    initShareCard(el);
+    wireCopyButton(el.querySelector('[data-action="copy-link"]'), () => el.dataset.shareUrl ?? '');
+
+    const inviteBtn = el.querySelector('[data-action="invite"]');
+    if (inviteBtn) {
+      const config = JSON.parse(inviteBtn.dataset.inviteConfig);
+      wireInviteButton(inviteBtn, config);
+    }
+  });
+</script>

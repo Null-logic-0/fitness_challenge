@@ -1,0 +1,110 @@
+---
+import { useTranslations, getLocalizedPath } from '../i18n/utils.js';
+
+/**
+ * Shared visual shell for the login/register pages. Behavior lives in
+ * src/scripts/auth-form.js; this just renders the fields for the given
+ * mode and hands the script pre-translated error strings via a data
+ * attribute (JSON), since the script has no access to the i18n dictionary.
+ * @typedef {Object} Props
+ * @property {string} lang
+ * @property {'login'|'register'} mode
+ * @property {string} [defaultRedirect] - where to send the user after a successful auth, absent a ?redirect= param
+ */
+const { lang, mode, defaultRedirect = getLocalizedPath(lang, '/challenge') } = Astro.props;
+const t = useTranslations(lang);
+const isRegister = mode === 'register';
+
+const messages = {
+  submitting: t('auth.submitting'),
+  pendingResultNotice: t('auth.pendingResultNotice'),
+  invalidCredentials: t('auth.invalidCredentials'),
+  emailInUse: t('auth.emailInUse'),
+  weakPassword: t('auth.weakPassword'),
+  genericError: t('auth.genericError'),
+  confirmEmailBody: t('auth.confirmEmailBody'),
+};
+
+const switchHref = isRegister ? getLocalizedPath(lang, '/login') : getLocalizedPath(lang, '/register');
+---
+
+<div
+  id="auth-root"
+  data-mode={mode}
+  data-messages={JSON.stringify(messages)}
+  data-default-redirect={defaultRedirect}
+  class="mx-auto max-w-sm"
+>
+  <div class="rounded-box border border-base-300 bg-base-200 p-8">
+    <p class="font-stat text-xs font-semibold tracking-[0.2em] text-primary">
+      {isRegister ? t('auth.registerEyebrow') : t('auth.loginEyebrow')}
+    </p>
+    <h1 class="mt-3 text-2xl font-bold tracking-tight">
+      {isRegister ? t('auth.registerTitle') : t('auth.loginTitle')}
+    </h1>
+    <p class="mt-1 text-sm text-base-content/60">
+      {isRegister ? t('auth.registerSubtitle') : t('auth.loginSubtitle')}
+    </p>
+
+    <p data-pending-notice hidden class="mt-4 rounded-field border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-primary"></p>
+
+    <p data-error role="alert" hidden class="mt-4 rounded-field border border-error/30 bg-error/10 px-4 py-3 text-sm text-error"></p>
+
+    <form class="mt-6 flex flex-col gap-4">
+      {isRegister && (
+        <label class="form-control">
+          <span class="label-text text-xs font-semibold uppercase tracking-wider text-base-content/50">{t('auth.displayNameLabel')}</span>
+          <input name="displayName" type="text" required autocomplete="name" class="input input-bordered mt-1 focus-ring" />
+        </label>
+      )}
+
+      <label class="form-control">
+        <span class="label-text text-xs font-semibold uppercase tracking-wider text-base-content/50">{t('auth.emailLabel')}</span>
+        <input name="email" type="email" required autocomplete="email" class="input input-bordered mt-1 focus-ring" />
+      </label>
+
+      <label class="form-control">
+        <span class="label-text text-xs font-semibold uppercase tracking-wider text-base-content/50">{t('auth.passwordLabel')}</span>
+        <input
+          name="password"
+          type="password"
+          required
+          minlength="6"
+          autocomplete={isRegister ? 'new-password' : 'current-password'}
+          class="input input-bordered mt-1 focus-ring"
+        />
+      </label>
+
+      {isRegister && (
+        <label class="form-control">
+          <span class="label-text text-xs font-semibold uppercase tracking-wider text-base-content/50">{t('auth.countryLabel')}</span>
+          <input name="country" type="text" required autocomplete="country-name" class="input input-bordered mt-1 focus-ring" />
+        </label>
+      )}
+
+      <button type="submit" data-submit-btn class="btn btn-primary btn-lg mt-2 focus-ring">
+        <span data-submit-label>{isRegister ? t('auth.registerButton') : t('auth.loginButton')}</span>
+      </button>
+    </form>
+
+    {isRegister && (
+      <div data-confirm-email hidden class="mt-2 text-center">
+        <p class="text-lg font-semibold">{t('auth.confirmEmailTitle')}</p>
+        <p data-confirm-email-body class="mt-2 text-sm text-base-content/60"></p>
+      </div>
+    )}
+
+    <p class="mt-6 text-center text-sm text-base-content/60">
+      {isRegister ? t('auth.hasAccount') : t('auth.noAccount')}{' '}
+      <a href={switchHref} data-switch-link class="font-semibold text-primary focus-ring rounded-field">
+        {isRegister ? t('auth.logInLink') : t('auth.signUpLink')}
+      </a>
+    </p>
+  </div>
+</div>
+
+<script>
+  import { initAuthForm } from '../scripts/auth-form.js';
+  const root = document.getElementById('auth-root');
+  if (root) initAuthForm(root);
+</script>

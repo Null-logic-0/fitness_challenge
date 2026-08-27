@@ -1,0 +1,37 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { useTranslations, localizedStaticPaths, getLocalizedPath } from '../../i18n/utils.js';
+
+export function getStaticPaths() {
+  return localizedStaticPaths();
+}
+
+const { lang } = Astro.params;
+const t = useTranslations(lang);
+const loginPath = getLocalizedPath(lang, '/login');
+---
+
+<Layout lang={lang} title={`${t('nav.myResults')} — 5MIN`} description={t('nav.myResults')} path="/me">
+  <main id="main-content" data-lang={lang} data-login-path={loginPath} class="mx-auto flex max-w-6xl items-center justify-center px-4 py-24 sm:px-6">
+    <span class="loading loading-spinner loading-lg text-primary" aria-hidden="true"></span>
+    <span class="sr-only">{t('common.loading')}</span>
+  </main>
+
+  <script>
+    import { getSession } from '../../scripts/auth.js';
+    import { supabase } from '../../db/supabase.js';
+
+    const root = document.getElementById('main-content');
+    const lang = root.dataset.lang;
+    const loginPath = root.dataset.loginPath;
+
+    getSession().then(async (session) => {
+      if (!session) {
+        window.location.replace(`${loginPath}?redirect=${encodeURIComponent(window.location.pathname)}`);
+        return;
+      }
+      const { data: profile } = await supabase.from('profiles').select('username').eq('id', session.user.id).single();
+      window.location.replace(profile?.username ? `/${lang}/athletes/${profile.username}` : `/${lang}`);
+    });
+  </script>
+</Layout>

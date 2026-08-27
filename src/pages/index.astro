@@ -1,0 +1,28 @@
+---
+import { locales, defaultLocale } from '../i18n/utils.js';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>5-Minute Challenge</title>
+    <meta http-equiv="refresh" content={`0; url=/${defaultLocale}`} />
+    <link rel="canonical" href={`/${defaultLocale}`} />
+    {locales.map((locale) => (
+      <link rel="alternate" hreflang={locale} href={`/${locale}`} />
+    ))}
+    <link rel="alternate" hreflang="x-default" href={`/${defaultLocale}`} />
+  </head>
+  <body>
+    <p>Redirecting to <a href={`/${defaultLocale}`}>5-Minute Challenge</a>…</p>
+    <script>
+      import { getStoredLocale } from '../scripts/language.js';
+      const supported = ['en', 'ka', 'es', 'ru'];
+      const stored = getStoredLocale();
+      const target = stored && supported.includes(stored) ? stored : 'en';
+      window.location.replace(`/${target}`);
+    </script>
+  </body>
+</html>

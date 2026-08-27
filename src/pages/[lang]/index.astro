@@ -1,0 +1,73 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Hero from '../../components/Hero.astro';
+import HowItWorks from '../../components/HowItWorks.astro';
+import ChallengeRules from '../../components/ChallengeRules.astro';
+import EngineerSection from '../../components/EngineerSection.astro';
+import PlatformStats from '../../components/PlatformStats.astro';
+import Footer from '../../components/Footer.astro';
+import { useTranslations, localizedStaticPaths, getLocalizedPath } from '../../i18n/utils.js';
+
+export function getStaticPaths() {
+  return localizedStaticPaths();
+}
+
+const { lang } = Astro.params;
+const t = useTranslations(lang);
+---
+
+<Layout lang={lang} title={t('meta.title')} description={t('meta.description')} path="/">
+  <Navbar lang={lang} path="/" />
+  <main id="main-content">
+    <Hero lang={lang} />
+    <HowItWorks lang={lang} />
+    <ChallengeRules lang={lang} />
+    <EngineerSection lang={lang} />
+    <PlatformStats lang={lang} />
+
+    <section
+      id="homepage-challenges"
+      data-lang={lang}
+      data-invite-title-template={t('social.inviteTitle')}
+      data-can-you-beat={t('social.inviteCanYouBeat')}
+      data-accept-label={t('social.acceptChallenge')}
+      data-invite-base-path={getLocalizedPath(lang, '/challenge/invite')}
+      class="bg-base-200"
+    >
+      <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-24">
+        <p class="font-stat text-xs font-semibold tracking-[0.2em] text-primary">{t('social.challengeSomeone').toUpperCase()}</p>
+        <h2 class="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">{t('nav.challenge')}</h2>
+
+        <div class="mt-8 space-y-3" data-challenge-list>
+          <div class="flex items-center justify-between gap-4 rounded-box border border-base-300 bg-base-100 p-5">
+            <div class="min-w-0">
+              <p class="text-sm font-semibold">{t('social.beFirstTitle')}</p>
+              <p class="mt-1 text-base-content/60">{t('social.beFirstBody')}</p>
+            </div>
+            <a href={getLocalizedPath(lang, '/challenge')} class="btn btn-primary btn-sm shrink-0 focus-ring">
+              {t('nav.start')}
+            </a>
+          </div>
+        </div>
+
+        <template data-challenge-template>
+          <div class="flex items-center justify-between gap-4 rounded-box border border-base-300 bg-base-100 p-5">
+            <div class="min-w-0">
+              <p class="truncate text-sm font-semibold" data-challenge-title></p>
+              <p class="mt-1 text-base-content/60" data-challenge-sub></p>
+            </div>
+            <a data-challenge-cta href="#" class="btn btn-primary btn-sm shrink-0 focus-ring"></a>
+          </div>
+        </template>
+      </div>
+    </section>
+  </main>
+  <Footer lang={lang} />
+</Layout>
+
+<script>
+  import { loadRecentChallenges } from '../../scripts/homepage-challenges.js';
+  const root = document.getElementById('homepage-challenges');
+  if (root) loadRecentChallenges(root);
+</script>

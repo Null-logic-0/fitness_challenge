@@ -1,0 +1,141 @@
+---
+export const prerender = false;
+
+import Layout from '../../../layouts/Layout.astro';
+import Navbar from '../../../components/Navbar.astro';
+import ScoreCard from '../../../components/ScoreCard.astro';
+import ProgressChart from '../../../components/ProgressChart.astro';
+import ShareCard from '../../../components/ShareCard.astro';
+import Footer from '../../../components/Footer.astro';
+import { supabase } from '../../../db/supabase.js';
+import { useTranslations, getLocalizedPath } from '../../../i18n/utils.js';
+import { formatNumber, formatDate, formatSignedNumber } from '../../../utils/format.js';
+
+const { lang, username } = Astro.params;
+const t = useTranslations(lang);
+
+const { data: profile } = await supabase
+  .from('profiles')
+  .select('id, username, display_name, country, category, created_at')
+  .eq('username', username)
+  .single();
+
+let results = [];
+let best = null;
+
+if (profile) {
+  const [{ data: history }, { data: bestRow }] = await Promise.all([
+    supabase
+      .from('results')
+      .select('id, pull_ups, dips, total, status, submitted_at')
+      .eq('user_id', profile.id)
+      .neq('status', 'rejected')
+      .order('submitted_at', { ascending: true }),
+    supabase.from('leaderboard').select('*').eq('user_id', profile.id).single(),
+  ]);
+  results = history ?? [];
+  best = bestRow ?? null;
+}
+
+const progression = results.map((r) => r.total);
+const gain = progression.length > 1 ? progression[progression.length - 1] - progression[0] : 0;
+const bestPace = best ? Number((best.total / 5).toFixed(1)) : 0;
+const shareUrl = profile ? new URL(getLocalizedPath(lang, `/athletes/${profile.username}`), Astro.site).toString() : '';
+---
+
+<Layout
+  lang={lang}
+  title={profile ? `${profile.display_name} — 5MIN` : `${t('results.notFoundTitle')} — 5MIN`}
+  description={profile ? `${profile.display_name}: ${best ? formatNumber(lang, best.total) : 0} ${t('share.totalRepsLabel').toLowerCase()}.` : t('results.notFoundBody')}
+  path={`/athletes/${username}`}
+>
+  <Navbar lang={lang} path={`/athletes/${username}`} />
+  <main id="main-content" class="mx-auto max-w-4xl px-4 py-10 sm:px-6 md:py-14">
+    {profile ? (
+      <>
+        <div class="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
+          <div class="avatar avatar-placeholder">
+            <div class="w-20 rounded-full bg-base-300 text-base-content ring-2 ring-primary ring-offset-2 ring-offset-base-100">
+              <span class="text-2xl font-semibold">
+                {profile.display_name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase()}
+              </span>
+            </div>
+          </div>
+          <div>
+            <h1 class="text-2xl font-bold">{profile.display_name}</h1>
+            <p class="mt-1 text-sm text-base-content/60">
+              {profile.country && <>{profile.country} · </>}
+              {t('athlete.joined')} {formatDate(lang, profile.created_at, { year: 'numeric', month: 'short' })}
+            </p>
+          </div>
+        </div>
+
+        {best ? (
+          <>
+            <div class="mt-10 rounded-box border border-base-300 bg-base-200 p-8">
+              <ScoreCard
+                lang={lang}
+                total={best.total}
+                pullUps={best.pull_ups}
+                dips={best.dips}
+                totalLabel={t('athlete.personalBest')}
+                pullUpsLabel={t('athlete.pullUps')}
+                dipsLabel={t('athlete.dips')}
+                size="xl"
+              />
+            </div>
+
+            <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {[
+                { label: t('athlete.pullUps'), value: formatNumber(lang, best.pull_ups) },
+                { label: t('athlete.dips'), value: formatNumber(lang, best.dips) },
+                { label: t('athlete.attempts'), value: formatNumber(lang, results.length) },
+                { label: t('athlete.bestPace'), value: `${formatNumber(lang, bestPace)}${t('athlete.perMin')}` },
+              ].map((stat) => (
+                <div class="rounded-box border border-base-300 bg-base-100 p-4 text-center">
+                  <p class="font-stat text-xl font-bold">{stat.value}</p>
+                  <p class="mt-1 text-[10px] font-semibold uppercase tracking-wider text-base-content/50">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {progression.length > 1 && (
+              <div class="mt-10">
+                <h2 class="text-lg font-semibold">{t('athlete.progression')}</h2>
+                <div class="mt-4 rounded-box border border-base-300 bg-base-100 p-6">
+                  <ProgressChart lang={lang} values={progression} />
+                  <p class="mt-2 text-center text-sm text-base-content/60">
+                    <span class="font-semibold text-success">{formatSignedNumber(lang, gain)}</span> {t('athlete.sinceFirst')}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div class="mt-10">
+              <ShareCard
+                lang={lang}
+                total={best.total}
+                pullUps={best.pull_ups}
+                dips={best.dips}
+                isPersonalBest={true}
+                shareUrl={shareUrl}
+                resultId={best.result_id}
+              />
+            </div>
+          </>
+        ) : (
+          <p class="mt-10 rounded-box border border-base-300 bg-base-200 p-10 text-center text-sm text-base-content/60">
+            {t('leaderboard.noResults')}
+          </p>
+        )}
+      </>
+    ) : (
+      <div class="rounded-box border border-base-300 bg-base-200 p-12 text-center">
+        <p class="text-xl font-semibold">{t('results.notFoundTitle')}</p>
+        <p class="mt-2 text-sm text-base-content/60">{t('results.notFoundBody')}</p>
+        <a href={getLocalizedPath(lang, '/leaderboard')} class="btn btn-primary mt-6 focus-ring">{t('results.viewLeaderboard')}</a>
+      </div>
+    )}
+  </main>
+  <Footer lang={lang} />
+</Layout>

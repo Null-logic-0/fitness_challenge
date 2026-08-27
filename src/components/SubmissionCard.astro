@@ -1,0 +1,100 @@
+---
+import { useTranslations, getDictionary, getLocalizedPath } from '../i18n/utils.js';
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const dict = getDictionary(lang);
+
+const labels = {
+  submitError: t('submit.submitError'),
+};
+
+const resultsBasePath = getLocalizedPath(lang, '/results');
+const loginPath = getLocalizedPath(lang, '/login');
+const registerPath = getLocalizedPath(lang, '/register');
+const challengePath = getLocalizedPath(lang, '/challenge');
+---
+
+<div
+  id="submission-root"
+  data-lang={lang}
+  data-labels={JSON.stringify(labels)}
+  data-results-path={resultsBasePath}
+  data-login-path={loginPath}
+  data-challenge-path={challengePath}
+  class="mx-auto max-w-lg"
+>
+  <!-- SIGN IN REQUIRED -->
+  <section data-panel="sign-in-required" hidden class="rounded-box border border-base-300 bg-base-200 p-8 text-center">
+    <p class="text-lg font-semibold">{dict.submit.signInRequiredTitle}</p>
+    <p class="mt-2 text-sm text-base-content/60">{dict.submit.signInRequiredBody}</p>
+    <div class="mt-6 flex flex-col gap-3">
+      <a data-sign-in-link href={loginPath} class="btn btn-primary focus-ring">{dict.auth.loginButton}</a>
+      <a href={registerPath} class="btn btn-outline focus-ring">{dict.auth.registerButton}</a>
+    </div>
+  </section>
+
+  <!-- FORM -->
+  <section data-panel="form" hidden>
+    <div class="rounded-box border border-base-300 bg-base-200 p-6 text-center">
+      <p class="text-xs font-semibold uppercase tracking-wider text-base-content/50">{dict.submit.yourAttempt}</p>
+      <p class="font-stat mt-2 text-5xl font-bold" data-attempt-total>0</p>
+      <div class="mt-3 flex justify-center gap-6 text-sm">
+        <p><span class="font-stat font-bold" data-attempt-pullups>0</span> {dict.challenge.pullUps}</p>
+        <p><span class="font-stat font-bold" data-attempt-dips>0</span> {dict.challenge.dips}</p>
+      </div>
+    </div>
+
+    <div class="mt-6 rounded-box border border-base-300 bg-base-200 p-6">
+      <h2 class="text-sm font-semibold uppercase tracking-wider text-base-content/60">{dict.submit.requirementsTitle}</h2>
+      <ul class="mt-3 space-y-2">
+        {dict.submit.requirements.map((item) => (
+          <li class="flex gap-3 text-sm text-base-content/75">
+            <span class="mt-0.5 text-primary" aria-hidden="true">—</span>
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    <form data-submission-form class="mt-6">
+      <p class="font-semibold">{dict.submit.youtubeTitle}</p>
+      <p class="mt-1 text-sm text-base-content/60">{dict.submit.youtubeExplain}</p>
+
+      <label class="form-control mt-4">
+        <span class="label-text text-xs font-semibold uppercase tracking-wider text-base-content/50">{dict.submit.youtubeLabel}</span>
+        <input
+          data-input="youtube"
+          type="url"
+          inputmode="url"
+          required
+          placeholder={dict.submit.youtubePlaceholder}
+          class="input input-bordered mt-1 focus-ring"
+        />
+        <span class="mt-1 text-xs text-base-content/40">{dict.submit.youtubeHint}</span>
+      </label>
+      <p data-youtube-error hidden role="alert" class="mt-2 text-sm font-medium text-error">{dict.submit.youtubeInvalid}</p>
+
+      <p class="mt-3 text-xs text-base-content/50">{dict.submit.youtubeUnlistedHint}</p>
+
+      <p data-submit-error hidden role="alert" class="mt-4 rounded-field border border-error/30 bg-error/10 px-4 py-3 text-sm text-error"></p>
+
+      <button type="submit" class="btn btn-primary btn-lg mt-6 w-full focus-ring">
+        {dict.submit.submitButton}
+      </button>
+    </form>
+  </section>
+
+  <!-- SUBMITTING -->
+  <section data-panel="verifying" hidden class="rounded-box border border-base-300 bg-base-200 p-12 text-center">
+    <span class="loading loading-spinner loading-lg text-primary" aria-hidden="true"></span>
+    <p class="mt-4 font-semibold">{dict.submit.verifying}</p>
+    <p class="mt-1 text-sm text-base-content/50">{dict.submit.verifyingHint}</p>
+  </section>
+</div>
+
+<script>
+  import { initSubmission } from '../scripts/submission.js';
+  const root = document.getElementById('submission-root');
+  if (root) initSubmission(root);
+</script>

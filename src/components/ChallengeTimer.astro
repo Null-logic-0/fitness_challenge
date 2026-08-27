@@ -1,0 +1,124 @@
+---
+import { useTranslations, getLocalizedPath } from '../i18n/utils.js';
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const submitPath = getLocalizedPath(lang, '/submit');
+const registerPath = `${getLocalizedPath(lang, '/register')}?redirect=${encodeURIComponent(submitPath)}`;
+const loginPath = `${getLocalizedPath(lang, '/login')}?redirect=${encodeURIComponent(submitPath)}`;
+---
+
+<div
+  id="challenge-root"
+  data-lang={lang}
+  data-submit-path={submitPath}
+  class="mx-auto max-w-lg"
+>
+  <p class="sr-only" role="status" aria-live="polite" data-live-region></p>
+
+  <!-- IDLE -->
+  <section data-panel="idle" class="rounded-box border border-base-300 bg-base-200 p-8 text-center">
+    <p class="font-stat text-7xl font-bold tabular-nums sm:text-8xl" data-timer>05:00</p>
+    <p class="mt-2 text-xs font-semibold uppercase tracking-wider text-base-content/50">{t('challenge.timeRemaining')}</p>
+    <button type="button" data-action="start" class="btn btn-primary btn-lg mt-8 w-full focus-ring">
+      {t('challenge.start')}
+    </button>
+  </section>
+
+  <!-- GET READY -->
+  <section data-panel="ready" hidden class="rounded-box border border-base-300 bg-base-200 p-8 text-center">
+    <p class="text-sm font-semibold uppercase tracking-[0.2em] text-primary">{t('challenge.getReady')}</p>
+    <p class="font-stat mt-4 text-8xl font-bold" data-ready-count>3</p>
+  </section>
+
+  <!-- RUNNING -->
+  <section data-panel="running" hidden>
+    <div class="rounded-box border border-base-300 bg-base-200 p-6 text-center">
+      <p class="font-stat text-7xl font-bold tabular-nums sm:text-8xl" data-timer>05:00</p>
+      <progress data-progress class="progress progress-primary mt-4 w-full" value="0" max="300"></progress>
+    </div>
+
+    <div class="mt-4 rounded-box border border-base-300 bg-base-100 p-6 text-center">
+      <p class="font-stat text-6xl font-bold" data-total>0</p>
+      <p class="mt-1 text-xs font-semibold uppercase tracking-wider text-base-content/50">{t('challenge.totalReps')}</p>
+
+      <div class="mt-5 grid grid-cols-2 gap-3 text-left">
+        <div class="rounded-field bg-base-200 px-4 py-3">
+          <p class="text-xs font-semibold uppercase tracking-wider text-base-content/50">{t('challenge.pullUps')}</p>
+          <p class="font-stat text-2xl font-bold" data-pullups>0</p>
+        </div>
+        <div class="rounded-field bg-base-200 px-4 py-3">
+          <p class="text-xs font-semibold uppercase tracking-wider text-base-content/50">{t('challenge.dips')}</p>
+          <p class="font-stat text-2xl font-bold" data-dips>0</p>
+        </div>
+      </div>
+
+      <div class="mt-4 flex justify-center gap-6 text-sm text-base-content/60">
+        <p><span class="font-stat font-semibold text-base-content" data-pace>0.0</span> {t('challenge.pace')}</p>
+        <p>{t('challenge.projected')} <span class="font-stat font-semibold text-base-content" data-projected>0</span></p>
+      </div>
+    </div>
+
+    <div class="mt-4 grid grid-cols-2 gap-3">
+      <button type="button" data-action="pullup" class="btn btn-primary btn-lg h-24 text-base focus-ring">
+        {t('challenge.addPullUp')}
+      </button>
+      <button type="button" data-action="dip" class="btn btn-primary btn-lg h-24 text-base focus-ring">
+        {t('challenge.addDip')}
+      </button>
+    </div>
+
+    <div class="mt-3 grid grid-cols-2 gap-3">
+      <button type="button" data-action="undo" class="btn btn-outline focus-ring" disabled>
+        {t('challenge.undo')}
+      </button>
+      <button type="button" data-action="finish" class="btn btn-ghost focus-ring">
+        {t('challenge.finish')}
+      </button>
+    </div>
+  </section>
+
+  <!-- REVIEW -->
+  <section data-panel="review" hidden class="rounded-box border border-base-300 bg-base-200 p-8 text-center">
+    <p class="text-sm font-semibold uppercase tracking-[0.2em] text-primary">{t('challenge.timeUp')}</p>
+    <h2 class="mt-2 text-2xl font-bold">{t('challenge.reviewTitle')}</h2>
+    <p class="mt-1 text-sm text-base-content/60">{t('challenge.reviewSubtitle')}</p>
+
+    <p class="font-stat mt-6 text-7xl font-bold" data-review-total>0</p>
+    <p class="text-xs font-semibold uppercase tracking-wider text-base-content/50">{t('challenge.totalReps')}</p>
+
+    <div class="mt-5 flex justify-center gap-8 text-sm">
+      <p><span class="font-stat font-bold" data-review-pullups>0</span> {t('challenge.pullUps')}</p>
+      <p><span class="font-stat font-bold" data-review-dips>0</span> {t('challenge.dips')}</p>
+    </div>
+
+    <div data-review-cta="authed" hidden class="mt-8 flex flex-col gap-3">
+      <a data-submit-link href={submitPath} class="btn btn-primary btn-lg focus-ring">
+        {t('challenge.submitAttempt')}
+      </a>
+      <button type="button" data-action="reset" class="btn btn-ghost focus-ring">
+        {t('challenge.tryAgain')}
+      </button>
+    </div>
+
+    <div data-review-cta="guest" hidden class="mt-8">
+      <div class="rounded-box border border-base-300 bg-base-100 p-5 text-left">
+        <p class="font-semibold">{t('challenge.saveTitle')}</p>
+        <p class="mt-1 text-sm text-base-content/60">{t('challenge.saveBody')}</p>
+        <div class="mt-4 flex flex-col gap-2">
+          <a href={registerPath} class="btn btn-primary focus-ring">{t('challenge.createAccount')}</a>
+          <a href={loginPath} class="btn btn-outline focus-ring">{t('challenge.logIn')}</a>
+        </div>
+      </div>
+      <button type="button" data-action="reset" class="btn btn-ghost mt-3 w-full focus-ring">
+        {t('challenge.tryAgain')}
+      </button>
+    </div>
+  </section>
+</div>
+
+<script>
+  import { initChallenge } from '../scripts/challenge.js';
+  const root = document.getElementById('challenge-root');
+  if (root) initChallenge(root);
+</script>

@@ -1,0 +1,57 @@
+---
+import { useTranslations } from '../i18n/utils.js';
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+
+// baseline/result are filled in client-side from the platform_stats view
+// (src/scripts/platform-stats.js) — average of everyone's first submitted
+// total vs. today's current record, so the pipeline reflects real usage
+// instead of one hardcoded example.
+const pipeline = [
+  { label: t('engineer.baseline'), statKey: 'averageBaseline' },
+  { label: t('engineer.training'), statKey: null },
+  { label: t('engineer.measurement'), statKey: null },
+  { label: t('engineer.optimization'), statKey: null },
+  { label: t('engineer.result'), statKey: 'currentRecord' },
+];
+---
+
+<section id="engineer-section" data-lang={lang} class="border-b border-base-300 bg-base-200">
+  <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-24">
+    <div class="max-w-2xl">
+      <p class="font-stat text-xs font-semibold tracking-[0.2em] text-primary">{t('engineer.eyebrow')}</p>
+      <h2 class="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">{t('engineer.title')}</h2>
+      <p class="mt-2 text-lg text-base-content/70">{t('engineer.subtitle')}</p>
+      <p class="mt-4 text-sm text-base-content/60">{t('engineer.body')}</p>
+    </div>
+
+    <div class="mt-12 flex flex-col items-stretch gap-3 md:flex-row md:items-center">
+      {pipeline.map((stage, i) => (
+        <>
+          <div class={`flex-1 rounded-box border p-5 text-center ${i === pipeline.length - 1 ? 'border-primary bg-base-100' : 'border-base-300 bg-base-100'}`}>
+            {stage.statKey ? (
+              <p class="font-stat text-3xl font-bold sm:text-4xl" data-stat={stage.statKey}>—</p>
+            ) : (
+              <p class="font-stat text-3xl font-bold text-base-content/20 sm:text-4xl">···</p>
+            )}
+            <p class="mt-2 text-xs font-semibold uppercase tracking-wider text-base-content/50">{stage.label}</p>
+          </div>
+          {i < pipeline.length - 1 && (
+            <div class="flex justify-center md:rotate-0" aria-hidden="true">
+              <svg viewBox="0 0 24 24" class="h-5 w-5 rotate-90 fill-base-content/30 md:rotate-0">
+                <path d="M4 11h13.2l-4.6-4.6L14 5l7 7-7 7-1.4-1.4 4.6-4.6H4z" />
+              </svg>
+            </div>
+          )}
+        </>
+      ))}
+    </div>
+  </div>
+</section>
+
+<script>
+  import { initPlatformStats } from '../scripts/platform-stats.js';
+  const root = document.getElementById('engineer-section');
+  if (root) initPlatformStats(root);
+</script>

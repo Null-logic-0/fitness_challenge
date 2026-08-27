@@ -1,0 +1,72 @@
+---
+import { locales, defaultLocale, localeTags } from '../i18n/utils.js';
+import '../styles/global.css';
+
+/**
+ * @typedef {Object} Props
+ * @property {string} lang - active locale code
+ * @property {string} title - fully-formed page title
+ * @property {string} description - meta description
+ * @property {string} [path] - unlocalized path used to build hreflang alternates, e.g. '/challenge'
+ * @property {string} [ogImage] - root-relative OG image URL
+ * @property {string} [structuredData] - optional JSON-LD string
+ */
+const { lang, title, description, path = '/', ogImage = '/images/og-default.svg', structuredData } = Astro.props;
+
+const cleanPath = path === '/' ? '' : path;
+const canonicalPath = `/${lang}${cleanPath}`;
+const canonicalURL = new URL(canonicalPath, Astro.site);
+const ogImageURL = new URL(ogImage, Astro.site);
+---
+
+<!doctype html>
+<html lang={localeTags[lang] ?? localeTags[defaultLocale]} data-theme="fivemin" data-locale={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalURL} />
+
+    {locales.map((locale) => (
+      <link rel="alternate" hreflang={locale} href={new URL(`/${locale}${cleanPath}`, Astro.site)} />
+    ))}
+    <link rel="alternate" hreflang="x-default" href={new URL(`/${defaultLocale}${cleanPath}`, Astro.site)} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:image" content={ogImageURL} />
+    <meta property="og:locale" content={(localeTags[lang] ?? localeTags[defaultLocale]).replace('-', '_')} />
+    {locales.filter((l) => l !== lang).map((locale) => (
+      <meta property="og:locale:alternate" content={(localeTags[locale] ?? localeTags[defaultLocale]).replace('-', '_')} />
+    ))}
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageURL} />
+
+    <meta name="theme-color" content="#161616" />
+
+    {structuredData && (
+      <script type="application/ld+json" set:html={structuredData} />
+    )}
+  </head>
+  <body class="min-h-screen bg-base-100 text-base-content antialiased">
+    <a
+      href="#main-content"
+      class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-field focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-content"
+    >
+      Skip to content
+    </a>
+    <slot />
+    <script>
+      import { persistLocale } from '../scripts/language.js';
+      persistLocale(document.documentElement.dataset.locale);
+    </script>
+  </body>
+</html>

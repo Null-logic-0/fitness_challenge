@@ -1,0 +1,36 @@
+---
+import { useTranslations, getLocalizedPath } from '../i18n/utils.js';
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<section class="relative overflow-hidden border-b border-base-300">
+  <div class="mx-auto grid max-w-6xl gap-12 px-4 py-16 sm:px-6 md:grid-cols-2 md:items-center md:py-24">
+    <div>
+      <p class="font-stat text-xs font-semibold tracking-[0.2em] text-primary">{t('hero.eyebrow')}</p>
+      <h1 class="mt-4 text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
+        {t('hero.title')}
+      </h1>
+      <p class="mt-5 max-w-md text-lg text-base-content/70">{t('hero.subtitle')}</p>
+
+      <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+        <a href={getLocalizedPath(lang, '/challenge')} class="btn btn-primary btn-lg focus-ring">
+          {t('hero.ctaPrimary')}
+        </a>
+        <a href={getLocalizedPath(lang, '/leaderboard')} class="btn btn-outline btn-lg focus-ring">
+          {t('hero.ctaSecondary')}
+        </a>
+      </div>
+    </div>
+
+    <div class="flex justify-center md:justify-end">
+      <div class="w-full max-w-sm rounded-box border border-base-300 bg-base-200 p-8 text-center shadow-xl">
+        <p class="font-stat text-7xl font-bold tabular-nums sm:text-8xl">{t('hero.timerLabel')}</p>
+        <div class="my-6 border-t border-base-300"></div>
+        <p class="text-sm font-semibold tracking-wide text-base-content/80">{t('hero.exerciseLabel')}</p>
+        <p class="mt-1 text-xs font-medium uppercase tracking-wider text-base-content/50">{t('hero.resultLabel')}</p>
+      </div>
+    </div>
+  </div>
+</section>

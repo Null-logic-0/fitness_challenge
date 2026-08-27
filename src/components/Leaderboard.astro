@@ -1,0 +1,159 @@
+---
+import { useTranslations, getLocalizedPath } from '../i18n/utils.js';
+import { supabase } from '../db/supabase.js';
+import { formatNumber } from '../utils/format.js';
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+
+const { data } = await supabase
+  .from('leaderboard')
+  .select('user_id, username, display_name, country, category, result_id, pull_ups, dips, total, status, submitted_at')
+  .order('total', { ascending: false })
+  .limit(200);
+
+const ranked = (data ?? []).map((row, i) => ({ ...row, rank: i + 1 }));
+
+function initials(name) {
+  return (name ?? '?').split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
+}
+
+const podium = ranked.slice(0, 3);
+
+const filterGroups = [
+  {
+    group: 'scope',
+    options: [
+      { value: 'global', label: t('leaderboard.filters.global') },
+      { value: 'country', label: t('leaderboard.filters.country') },
+    ],
+  },
+  {
+    group: 'time',
+    options: [
+      { value: 'week', label: t('leaderboard.filters.thisWeek') },
+      { value: 'month', label: t('leaderboard.filters.thisMonth') },
+      { value: 'all', label: t('leaderboard.filters.allTime') },
+    ],
+  },
+  {
+    group: 'category',
+    options: [
+      { value: 'open', label: t('leaderboard.categories.open') },
+      { value: 'men', label: t('leaderboard.categories.men') },
+      { value: 'women', label: t('leaderboard.categories.women') },
+    ],
+  },
+];
+
+const defaults = { scope: 'global', time: 'all', category: 'open' };
+---
+
+<div id="leaderboard-root">
+  <div class="flex flex-wrap gap-3">
+    {filterGroups.map((fg) => (
+      <div class="tabs tabs-boxed inline-flex w-fit bg-base-200" role="tablist" data-filter-group={fg.group}>
+        {fg.options.map((opt) => (
+          <button
+            type="button"
+            role="tab"
+            class={`tab focus-ring ${defaults[fg.group] === opt.value ? 'tab-active' : ''}`}
+            data-filter-value={opt.value}
+            aria-pressed={defaults[fg.group] === opt.value ? 'true' : 'false'}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    ))}
+  </div>
+
+  {ranked.length === 0 ? (
+    <p class="mt-10 rounded-box border border-base-300 bg-base-200 p-10 text-center text-sm text-base-content/50">
+      {t('leaderboard.noResults')}
+    </p>
+  ) : (
+    <>
+      <!-- Podium -->
+      <div class="mt-10 grid grid-cols-3 items-end gap-3" data-podium>
+        {[podium[1], podium[0], podium[2]].map((athlete, i) => {
+          if (!athlete) return <div />;
+          const place = i === 1 ? 1 : i === 0 ? 2 : 3;
+          const height = place === 1 ? 'pb-8 pt-6' : place === 2 ? 'pb-6 pt-4' : 'pb-4 pt-2';
+          const ring = place === 1 ? 'ring-primary' : 'ring-base-300';
+          return (
+            <a
+              href={getLocalizedPath(lang, `/athletes/${athlete.username}`)}
+              class={`flex flex-col items-center rounded-box border border-base-300 bg-base-200 px-2 text-center focus-ring ${height}`}
+              data-podium-slot={place}
+            >
+              <div class="avatar avatar-placeholder mb-2">
+                <div class={`w-14 rounded-full bg-base-300 text-base-content ring-2 ${ring} ring-offset-2 ring-offset-base-100`}>
+                  <span class="text-lg font-semibold" data-slot-initials>{initials(athlete.display_name)}</span>
+                </div>
+              </div>
+              <p class="font-stat text-lg font-bold text-primary">#{place}</p>
+              <p class="mt-1 truncate text-sm font-semibold" data-slot-name>{athlete.display_name}</p>
+              <p class="text-xs text-base-content/50"><span data-slot-country>{athlete.country ?? ''}</span></p>
+              <p class="font-stat mt-1 text-2xl font-bold" data-slot-total>{formatNumber(lang, athlete.total)}</p>
+            </a>
+          );
+        })}
+      </div>
+
+      <!-- Table -->
+      <div class="mt-8 overflow-x-auto rounded-box border border-base-300">
+        <table class="table">
+          <thead>
+            <tr class="bg-base-200 text-xs uppercase tracking-wider text-base-content/50">
+              <th class="w-16">{t('leaderboard.rank')}</th>
+              <th>{t('leaderboard.athlete')}</th>
+              <th class="text-right">{t('leaderboard.pullUpsShort')}</th>
+              <th class="text-right">{t('leaderboard.dipsShort')}</th>
+              <th class="text-right">{t('leaderboard.total')}</th>
+            </tr>
+          </thead>
+          <tbody data-rows>
+            {ranked.map((athlete) => (
+              <tr
+                data-row
+                data-user-id={athlete.user_id}
+                data-category={athlete.category}
+                data-submitted-at={athlete.submitted_at}
+                data-country={athlete.country ?? ''}
+              >
+                <td class="font-stat font-bold" data-rank>{athlete.rank}</td>
+                <td>
+                  <a href={getLocalizedPath(lang, `/athletes/${athlete.username}`)} class="flex items-center gap-3 focus-ring rounded-field">
+                    <div class="avatar avatar-placeholder">
+                      <div class="w-8 rounded-full bg-base-300 text-base-content">
+                        <span class="text-xs font-semibold">{initials(athlete.display_name)}</span>
+                      </div>
+                    </div>
+                    <span class="font-medium">
+                      {athlete.display_name}
+                      <span data-you-badge hidden class="badge badge-primary badge-sm ml-2">{t('leaderboard.you')}</span>
+                    </span>
+                    <span class="text-base-content/40">{athlete.country}</span>
+                  </a>
+                </td>
+                <td class="font-stat text-right">{formatNumber(lang, athlete.pull_ups)}</td>
+                <td class="font-stat text-right">{formatNumber(lang, athlete.dips)}</td>
+                <td class="font-stat text-right font-bold">{formatNumber(lang, athlete.total)}</td>
+              </tr>
+            ))}
+            <tr data-no-results hidden>
+              <td colspan="5" class="py-10 text-center text-sm text-base-content/50">{t('leaderboard.noResults')}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </>
+  )}
+</div>
+
+<script>
+  import { initLeaderboard } from '../scripts/leaderboard.js';
+  const root = document.getElementById('leaderboard-root');
+  if (root) initLeaderboard(root);
+</script>
