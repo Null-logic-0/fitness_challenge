@@ -18,6 +18,9 @@ pnpm-debug.log*
 .env.local
 .env.production
 
+# raw source footage (large, unoptimized — web-ready copies live in public/videos/)
+raw-videos/
+
 # macOS-specific files
 .DS_Store
 
