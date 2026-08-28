@@ -1,7 +1,7 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import tailwindcss from '@tailwindcss/vite';
-import node from '@astrojs/node';
+import vercel from '@astrojs/vercel';
 import sitemap from '@astrojs/sitemap';
 
 // https://astro.build/config
@@ -11,11 +11,12 @@ export default defineConfig({
   // Static by default (every page prerenders) — a handful of pages that
   // need live per-request Supabase data or per-result OG metadata opt out
   // with `export const prerender = false` (leaderboard, results/[id],
-  // challenge/invite/[token]). The Node adapter is the most portable
-  // choice when no specific host is targeted; swap for @astrojs/vercel or
-  // @astrojs/netlify if deploying to one of those instead — the only
-  // change needed is this `adapter` line.
-  adapter: node({ mode: 'standalone' }),
+  // challenge/invite/[token]). Deployed on Vercel: prerendered pages are
+  // served as static assets and the opted-out ones run as serverless
+  // functions — no extra config needed beyond this adapter line and the
+  // PUBLIC_SUPABASE_URL / PUBLIC_SUPABASE_KEY env vars in the Vercel
+  // project settings.
+  adapter: vercel(),
   integrations: [
     sitemap({
       i18n: {
