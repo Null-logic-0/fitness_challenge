@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@astrojs/node": "^11.1.4",
+    "@astrojs/sitemap": "^3.7.3",
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
     "@fontsource-variable/noto-sans": "^5.3.0",
     "@fontsource-variable/noto-sans-georgian": "^5.3.0",

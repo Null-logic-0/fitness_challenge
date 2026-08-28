@@ -7,7 +7,7 @@ import ChallengeRules from '../../components/ChallengeRules.astro';
 import EngineerSection from '../../components/EngineerSection.astro';
 import PlatformStats from '../../components/PlatformStats.astro';
 import Footer from '../../components/Footer.astro';
-import { useTranslations, localizedStaticPaths, getLocalizedPath } from '../../i18n/utils.js';
+import { useTranslations, localizedStaticPaths, getLocalizedPath, localeTags, defaultLocale } from '../../i18n/utils.js';
 
 export function getStaticPaths() {
   return localizedStaticPaths();
@@ -15,9 +15,24 @@ export function getStaticPaths() {
 
 const { lang } = Astro.params;
 const t = useTranslations(lang);
+
+const structuredData = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: '5-Minute Challenge',
+  url: new URL(getLocalizedPath(lang, '/'), Astro.site).toString(),
+  description: t('meta.description'),
+  inLanguage: localeTags[lang] ?? localeTags[defaultLocale],
+});
 ---
 
-<Layout lang={lang} title={t('meta.title')} description={t('meta.description')} path="/">
+<Layout
+  lang={lang}
+  title={t('meta.title')}
+  description={t('meta.description')}
+  path="/"
+  structuredData={structuredData}
+>
   <Navbar lang={lang} path="/" />
   <main id="main-content">
     <Hero lang={lang} />

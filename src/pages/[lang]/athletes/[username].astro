@@ -46,6 +46,19 @@ const gain = progression.length > 1 ? progression[progression.length - 1] - prog
 const bestPace = best ? Number((best.total / 5).toFixed(1)) : 0;
 const shareUrl = profile ? new URL(getLocalizedPath(lang, `/athletes/${profile.username}`), Astro.site).toString() : '';
 const countryName = profile?.country ? getCountryName(profile.country, localeTags[lang]) : '';
+
+const structuredData = profile
+  ? JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'ProfilePage',
+      mainEntity: {
+        '@type': 'Person',
+        name: profile.display_name,
+        url: shareUrl,
+        ...(countryName && { nationality: countryName }),
+      },
+    })
+  : undefined;
 ---
 
 <Layout
@@ -53,6 +66,7 @@ const countryName = profile?.country ? getCountryName(profile.country, localeTag
   title={profile ? `${profile.display_name} — 5MIN` : `${t('results.notFoundTitle')} — 5MIN`}
   description={profile ? `${profile.display_name}: ${best ? formatNumber(lang, best.total) : 0} ${t('share.totalRepsLabel').toLowerCase()}.` : t('results.notFoundBody')}
   path={`/athletes/${username}`}
+  structuredData={structuredData}
 >
   <Navbar lang={lang} path={`/athletes/${username}`} />
   <main id="main-content" class="mx-auto max-w-4xl px-4 py-10 sm:px-6 md:py-14">

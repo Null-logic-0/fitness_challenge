@@ -30,7 +30,7 @@ const pageTitle = invite ? `${inviteTitle} — 5MIN` : `${t('social.inviteNotFou
 const pageDescription = invite ? t('social.inviteCanYouBeat') : t('social.inviteNotFoundBody');
 ---
 
-<Layout lang={lang} title={pageTitle} description={pageDescription} path={`/challenge/invite/${token}`}>
+<Layout lang={lang} title={pageTitle} description={pageDescription} path={`/challenge/invite/${token}`} noindex>
   <Navbar lang={lang} path={`/challenge/invite/${token}`} />
   <main id="main-content" class="mx-auto max-w-lg px-4 py-16 sm:px-6">
     {invite ? (

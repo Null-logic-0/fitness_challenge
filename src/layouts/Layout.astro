@@ -10,13 +10,18 @@ import '../styles/global.css';
  * @property {string} [path] - unlocalized path used to build hreflang alternates, e.g. '/challenge'
  * @property {string} [ogImage] - root-relative OG image URL
  * @property {string} [structuredData] - optional JSON-LD string
+ * @property {boolean} [noindex] - true for pages with no public search value
+ *   (personal dashboards, ephemeral one-time invite links) — kept crawlable
+ *   so social unfurlers can still read the OG tags above, just excluded
+ *   from search results and left out of the sitemap.
  */
-const { lang, title, description, path = '/', ogImage = '/images/og-default.svg', structuredData } = Astro.props;
+const { lang, title, description, path = '/', ogImage = '/images/og-default.png', structuredData, noindex = false } = Astro.props;
 
 const cleanPath = path === '/' ? '' : path;
 const canonicalPath = `/${lang}${cleanPath}`;
 const canonicalURL = new URL(canonicalPath, Astro.site);
 const ogImageURL = new URL(ogImage, Astro.site);
+const supabaseOrigin = import.meta.env.PUBLIC_SUPABASE_URL ? new URL(import.meta.env.PUBLIC_SUPABASE_URL).origin : null;
 ---
 
 <!doctype html>
@@ -29,6 +34,8 @@ const ogImageURL = new URL(ogImage, Astro.site);
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalURL} />
+    {noindex && <meta name="robots" content="noindex, follow" />}
+    {supabaseOrigin && <link rel="preconnect" href={supabaseOrigin} crossorigin />}
 
     {locales.map((locale) => (
       <link rel="alternate" hreflang={locale} href={new URL(`/${locale}${cleanPath}`, Astro.site)} />

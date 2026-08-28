@@ -44,8 +44,25 @@ const filterGroups = [
 ];
 
 const defaults = { scope: 'global', time: 'all', category: 'open' };
+
+const topForSchema = rows.slice(0, 10);
+const leaderboardSchema = topForSchema.length > 0
+  ? JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      name: t('leaderboard.title'),
+      itemListOrder: 'https://schema.org/ItemListOrderDescending',
+      itemListElement: topForSchema.map((r, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        name: r.display_name,
+        url: new URL(getLocalizedPath(lang, `/athletes/${r.username}`), Astro.site).toString(),
+      })),
+    })
+  : null;
 ---
 
+{leaderboardSchema && <script type="application/ld+json" set:html={leaderboardSchema} />}
 <div
   id="leaderboard-root"
   data-lang={lang}
