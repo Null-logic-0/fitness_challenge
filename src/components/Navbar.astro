@@ -18,6 +18,8 @@ const links = [
 
 const loginPath = `${getLocalizedPath(lang, '/login')}?redirect=${encodeURIComponent(getLocalizedPath(lang, path))}`;
 const mePath = getLocalizedPath(lang, '/me');
+const settingsPath = getLocalizedPath(lang, '/settings');
+const adminPath = getLocalizedPath(lang, '/admin');
 ---
 
 <div class="drawer">
@@ -53,6 +55,8 @@ const mePath = getLocalizedPath(lang, '/me');
             </summary>
             <ul class="menu dropdown-content z-20 mt-2 w-48 rounded-box bg-base-200 p-2 shadow-lg border border-base-300">
               <li><a href={mePath}>{t('nav.myResults')}</a></li>
+              <li><a href={settingsPath}>{t('settings.navLabel')}</a></li>
+              <li data-admin-only hidden><a href={adminPath}>{t('admin.navLabel')}</a></li>
               <li><button type="button" data-action="logout">{t('nav.logout')}</button></li>
             </ul>
           </details>
@@ -97,6 +101,8 @@ const mePath = getLocalizedPath(lang, '/me');
 
       <div data-auth-state="user" hidden class="flex flex-col gap-2">
         <a href={mePath} class="btn btn-outline w-full focus-ring">{t('nav.myResults')}</a>
+        <a href={settingsPath} class="btn btn-outline w-full focus-ring">{t('settings.navLabel')}</a>
+        <a data-admin-only hidden href={adminPath} class="btn btn-outline w-full focus-ring">{t('admin.navLabel')}</a>
         <button type="button" data-action="logout" class="btn btn-ghost w-full focus-ring">{t('nav.logout')}</button>
       </div>
 

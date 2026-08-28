@@ -1,5 +1,6 @@
 ---
-import { useTranslations, getLocalizedPath } from '../i18n/utils.js';
+import { useTranslations, getLocalizedPath, localeTags } from '../i18n/utils.js';
+import { getCountryOptions } from '../utils/countries.js';
 
 /**
  * Shared visual shell for the login/register pages. Behavior lives in
@@ -26,6 +27,7 @@ const messages = {
 };
 
 const switchHref = isRegister ? getLocalizedPath(lang, '/login') : getLocalizedPath(lang, '/register');
+const countryOptions = isRegister ? getCountryOptions(localeTags[lang]) : [];
 ---
 
 <div
@@ -78,7 +80,38 @@ const switchHref = isRegister ? getLocalizedPath(lang, '/login') : getLocalizedP
       {isRegister && (
         <label class="form-control">
           <span class="label-text text-xs font-semibold uppercase tracking-wider text-base-content/50">{t('auth.countryLabel')}</span>
-          <input name="country" type="text" required autocomplete="country-name" class="input input-bordered mt-1 focus-ring" />
+          <select name="country" required autocomplete="country" class="select select-bordered mt-1 focus-ring">
+            <option value="" disabled selected>{t('auth.countryPlaceholder')}</option>
+            {countryOptions.map((c) => (
+              <option value={c.code}>{c.name}</option>
+            ))}
+          </select>
+        </label>
+      )}
+
+      {isRegister && (
+        <label class="form-control">
+          <span class="label-text text-xs font-semibold uppercase tracking-wider text-base-content/50">{t('auth.ageRangeLabel')}</span>
+          <select name="ageRange" required class="select select-bordered mt-1 focus-ring">
+            <option value="" disabled selected>{t('auth.ageRangePlaceholder')}</option>
+            <option value="18-24">18–24</option>
+            <option value="25-34">25–34</option>
+            <option value="35-44">35–44</option>
+            <option value="45-54">45–54</option>
+            <option value="55+">55+</option>
+          </select>
+        </label>
+      )}
+
+      {isRegister && (
+        <label class="form-control">
+          <span class="label-text text-xs font-semibold uppercase tracking-wider text-base-content/50">{t('auth.genderLabel')}</span>
+          <select name="gender" required class="select select-bordered mt-1 focus-ring">
+            <option value="" disabled selected>{t('auth.genderPlaceholder')}</option>
+            <option value="men">{t('auth.genderMale')}</option>
+            <option value="women">{t('auth.genderFemale')}</option>
+            <option value="open">{t('auth.genderPreferNotToSay')}</option>
+          </select>
         </label>
       )}
 

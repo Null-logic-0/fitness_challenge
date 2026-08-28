@@ -8,8 +8,10 @@ import ProgressChart from '../../../components/ProgressChart.astro';
 import ShareCard from '../../../components/ShareCard.astro';
 import Footer from '../../../components/Footer.astro';
 import { supabase } from '../../../db/supabase.js';
-import { useTranslations, getLocalizedPath } from '../../../i18n/utils.js';
+import { useTranslations, getLocalizedPath, localeTags } from '../../../i18n/utils.js';
 import { formatNumber, formatDate, formatSignedNumber } from '../../../utils/format.js';
+import { youtubeEmbedUrl } from '../../../utils/youtube.js';
+import { getCountryName } from '../../../utils/countries.js';
 
 const { lang, username } = Astro.params;
 const t = useTranslations(lang);
@@ -27,7 +29,7 @@ if (profile) {
   const [{ data: history }, { data: bestRow }] = await Promise.all([
     supabase
       .from('results')
-      .select('id, pull_ups, dips, total, status, submitted_at')
+      .select('id, pull_ups, dips, total, status, submitted_at, youtube_video_id')
       .eq('user_id', profile.id)
       .neq('status', 'rejected')
       .order('submitted_at', { ascending: true }),
@@ -37,10 +39,13 @@ if (profile) {
   best = bestRow ?? null;
 }
 
+const bestVideoId = best ? results.find((r) => r.id === best.result_id)?.youtube_video_id : null;
+
 const progression = results.map((r) => r.total);
 const gain = progression.length > 1 ? progression[progression.length - 1] - progression[0] : 0;
 const bestPace = best ? Number((best.total / 5).toFixed(1)) : 0;
 const shareUrl = profile ? new URL(getLocalizedPath(lang, `/athletes/${profile.username}`), Astro.site).toString() : '';
+const countryName = profile?.country ? getCountryName(profile.country, localeTags[lang]) : '';
 ---
 
 <Layout
@@ -64,7 +69,7 @@ const shareUrl = profile ? new URL(getLocalizedPath(lang, `/athletes/${profile.u
           <div>
             <h1 class="text-2xl font-bold">{profile.display_name}</h1>
             <p class="mt-1 text-sm text-base-content/60">
-              {profile.country && <>{profile.country} · </>}
+              {countryName && <>{countryName} · </>}
               {t('athlete.joined')} {formatDate(lang, profile.created_at, { year: 'numeric', month: 'short' })}
             </p>
           </div>
@@ -84,6 +89,21 @@ const shareUrl = profile ? new URL(getLocalizedPath(lang, `/athletes/${profile.u
                 size="xl"
               />
             </div>
+
+            {bestVideoId && (
+              <div class="mt-6 overflow-hidden rounded-box border border-base-300">
+                <div class="aspect-video">
+                  <iframe
+                    class="h-full w-full"
+                    src={youtubeEmbedUrl(bestVideoId)}
+                    title={t('results.watchOnYoutube')}
+                    loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                  ></iframe>
+                </div>
+              </div>
+            )}
 
             <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {[

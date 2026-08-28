@@ -1,83 +1,191 @@
 import { getSession } from './auth.js';
 import { supabase } from '../db/supabase.js';
+import { fetchLeaderboardPage, PAGE_SIZE } from '../db/leaderboard-query.js';
+import { formatNumber } from '../utils/format.js';
+import { getLocalizedPath, localeTags } from '../i18n/utils.js';
+import { getCountryName } from '../utils/countries.js';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+function initials(name) {
+  return (name ?? '?').split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
+}
 
 /**
- * Progressive-enhancement filtering for the leaderboard table. The table is
- * fully server-rendered (global / all-time / open, sorted by real Supabase
- * data) so it works with no JS at all; this only hides non-matching rows,
- * renumbers ranks, refreshes the podium, and — once the viewer's session
- * resolves — highlights their own row and enables the "Country" scope.
+ * Real server-paginated leaderboard: the table is SSR'd with page 1 (so it
+ * works and is crawlable with no JS at all), and this adds scope/time/
+ * category filtering (each a fresh server query, not a client-side
+ * hide/show) plus infinite scroll for subsequent pages, viewer highlighting,
+ * and distinct loading/error/empty states.
  * @param {HTMLElement} root
  */
 export function initLeaderboard(root) {
-  const rows = Array.from(root.querySelectorAll('[data-row]'));
-  const noResultsRow = root.querySelector('[data-no-results]');
+  const lang = root.dataset.lang;
+  const tbody = root.querySelector('[data-rows]');
   const podiumSlots = Array.from(root.querySelectorAll('[data-podium-slot]'));
+  const sentinel = root.querySelector('[data-sentinel]');
+  const loadingMoreEl = root.querySelector('[data-loading-more]');
+  const states = {
+    error: root.querySelector('[data-state="error"]'),
+    empty: root.querySelector('[data-state="empty"]'),
+    content: root.querySelector('[data-state="content"]'),
+  };
 
-  const state = { scope: 'global', time: 'all', category: 'open', viewerCountry: null };
+  const state = {
+    scope: 'global',
+    time: 'all',
+    category: 'open',
+    viewerCountry: null,
+    viewerId: null,
+    offset: Number(root.dataset.nextOffset || 0),
+    hasMore: root.dataset.hasMore === 'true',
+    loading: false,
+  };
 
-  function matches(row) {
-    const scopeOk = state.scope === 'global' || (state.scope === 'country' && row.dataset.country === state.viewerCountry);
-
-    const submittedAt = new Date(row.dataset.submittedAt).getTime();
-    const ageMs = Date.now() - submittedAt;
-    const timeOk =
-      state.time === 'all' ||
-      (state.time === 'week' && ageMs <= 7 * DAY_MS) ||
-      (state.time === 'month' && ageMs <= 30 * DAY_MS);
-
-    const categoryOk = state.category === 'open' || row.dataset.category === state.category;
-
-    return scopeOk && timeOk && categoryOk;
+  function showState(name) {
+    Object.entries(states).forEach(([key, el]) => {
+      if (el) el.hidden = key !== name;
+    });
   }
 
-  function initials(name) {
-    return (name ?? '?').split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
+  function highlightIfViewer(row, userId) {
+    if (!state.viewerId || userId !== state.viewerId) return;
+    row.classList.add('bg-primary/10');
+    const badge = row.querySelector('[data-you-badge]');
+    if (badge) badge.hidden = false;
   }
 
-  function updatePodium(visibleRows) {
-    const top3 = visibleRows.slice(0, 3);
+  function buildRow(athlete, rank) {
+    const tr = document.createElement('tr');
+    tr.dataset.row = '';
+    tr.dataset.userId = athlete.user_id;
+
+    const rankTd = document.createElement('td');
+    rankTd.className = 'font-stat font-bold';
+    rankTd.textContent = String(rank);
+
+    const athleteTd = document.createElement('td');
+    const link = document.createElement('a');
+    link.href = getLocalizedPath(lang, `/athletes/${athlete.username}`);
+    link.className = 'flex items-center gap-3 focus-ring rounded-field';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar avatar-placeholder';
+    avatar.innerHTML = '<div class="w-8 rounded-full bg-base-300 text-base-content"><span class="text-xs font-semibold"></span></div>';
+    avatar.querySelector('span').textContent = initials(athlete.display_name);
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'font-medium';
+    nameSpan.append(document.createTextNode(athlete.display_name));
+    const youBadge = document.createElement('span');
+    youBadge.dataset.youBadge = '';
+    youBadge.hidden = true;
+    youBadge.className = 'badge badge-primary badge-sm ml-2';
+    youBadge.textContent = root.dataset.youLabel;
+    nameSpan.append(youBadge);
+
+    const countrySpan = document.createElement('span');
+    countrySpan.className = 'text-base-content/40';
+    countrySpan.textContent = getCountryName(athlete.country, localeTags[lang]);
+
+    link.append(avatar, nameSpan, countrySpan);
+    athleteTd.appendChild(link);
+
+    const pullUpsTd = document.createElement('td');
+    pullUpsTd.className = 'font-stat text-right';
+    pullUpsTd.textContent = formatNumber(lang, athlete.pull_ups);
+
+    const dipsTd = document.createElement('td');
+    dipsTd.className = 'font-stat text-right';
+    dipsTd.textContent = formatNumber(lang, athlete.dips);
+
+    const totalTd = document.createElement('td');
+    totalTd.className = 'font-stat text-right font-bold';
+    totalTd.textContent = formatNumber(lang, athlete.total);
+
+    tr.append(rankTd, athleteTd, pullUpsTd, dipsTd, totalTd);
+    highlightIfViewer(tr, athlete.user_id);
+    return tr;
+  }
+
+  function updatePodium(rows) {
+    const top3 = rows.slice(0, 3);
     podiumSlots.forEach((slot) => {
       const place = Number(slot.dataset.podiumSlot);
       const rankIndex = place === 1 ? 0 : place === 2 ? 1 : 2;
-      const row = top3[rankIndex];
-      if (!row) {
+      const athlete = top3[rankIndex];
+      if (!athlete) {
         slot.style.visibility = 'hidden';
         return;
       }
       slot.style.visibility = 'visible';
-      const name = row.querySelector('.font-medium')?.childNodes[0]?.textContent?.trim() ?? '';
-      const total = row.children[4]?.textContent ?? '';
-      const country = row.dataset.country ?? '';
-      const href = row.querySelector('a')?.getAttribute('href') ?? '#';
-      slot.href = href;
-      const initialsEl = slot.querySelector('[data-slot-initials]');
-      if (initialsEl) initialsEl.textContent = initials(name);
-      const nameEl = slot.querySelector('[data-slot-name]');
-      if (nameEl) nameEl.textContent = name;
-      const countryEl = slot.querySelector('[data-slot-country]');
-      if (countryEl) countryEl.textContent = country;
-      const totalEl = slot.querySelector('[data-slot-total]');
-      if (totalEl) totalEl.textContent = total;
+      slot.href = getLocalizedPath(lang, `/athletes/${athlete.username}`);
+      const set = (sel, text) => {
+        const el = slot.querySelector(sel);
+        if (el) el.textContent = text;
+      };
+      set('[data-slot-initials]', initials(athlete.display_name));
+      set('[data-slot-name]', athlete.display_name);
+      set('[data-slot-country]', getCountryName(athlete.country, localeTags[lang]));
+      set('[data-slot-total]', formatNumber(lang, athlete.total));
     });
   }
 
-  function applyFilters() {
-    const visible = [];
-    rows.forEach((row) => {
-      const isVisible = matches(row);
-      row.hidden = !isVisible;
-      if (isVisible) visible.push(row);
+  async function loadFirstPage() {
+    showState('content'); // optimistic; corrected below if empty/error
+    if (loadingMoreEl) loadingMoreEl.hidden = false;
+    tbody.innerHTML = '';
+    state.offset = 0;
+
+    const { rows, error, hasMore } = await fetchLeaderboardPage({
+      scope: state.scope,
+      time: state.time,
+      category: state.category,
+      viewerCountry: state.viewerCountry,
+      offset: 0,
     });
 
-    visible.forEach((row, i) => {
-      row.querySelector('[data-rank]').textContent = String(i + 1);
+    if (loadingMoreEl) loadingMoreEl.hidden = true;
+
+    if (error) {
+      showState('error');
+      return;
+    }
+    if (rows.length === 0) {
+      showState('empty');
+      updatePodium([]);
+      return;
+    }
+
+    showState('content');
+    updatePodium(rows);
+    rows.forEach((athlete, i) => tbody.appendChild(buildRow(athlete, i + 1)));
+    state.offset = rows.length;
+    state.hasMore = hasMore;
+  }
+
+  async function loadNextPage() {
+    if (state.loading || !state.hasMore) return;
+    state.loading = true;
+    if (loadingMoreEl) loadingMoreEl.hidden = false;
+
+    const { rows, error, hasMore } = await fetchLeaderboardPage({
+      scope: state.scope,
+      time: state.time,
+      category: state.category,
+      viewerCountry: state.viewerCountry,
+      offset: state.offset,
     });
 
-    if (noResultsRow) noResultsRow.hidden = visible.length > 0;
-    updatePodium(visible);
+    state.loading = false;
+    if (loadingMoreEl) loadingMoreEl.hidden = true;
+
+    if (error) {
+      state.hasMore = false; // stop retrying automatically; the section above still shows loaded rows
+      return;
+    }
+
+    rows.forEach((athlete, i) => tbody.appendChild(buildRow(athlete, state.offset + i + 1)));
+    state.offset += rows.length;
+    state.hasMore = hasMore;
   }
 
   root.querySelectorAll('[data-filter-group]').forEach((group) => {
@@ -91,27 +199,35 @@ export function initLeaderboard(root) {
         btn.classList.add('tab-active');
         btn.setAttribute('aria-pressed', 'true');
         state[key] = btn.dataset.filterValue;
-        applyFilters();
+        loadFirstPage();
       });
     });
   });
 
+  root.querySelectorAll('[data-action="retry"]').forEach((btn) => {
+    btn.addEventListener('click', loadFirstPage);
+  });
+
+  if (sentinel && 'IntersectionObserver' in window) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) loadNextPage();
+      },
+      { rootMargin: '400px' },
+    );
+    observer.observe(sentinel);
+  }
+
   // Highlighting "you" and enabling the Country scope both need to know who
   // is looking — resolved client-side since sessions live in localStorage,
-  // not in a cookie the server-rendered table could read.
+  // not in a cookie the server-rendered table could read. The initial SSR
+  // rows are re-checked once this resolves.
   getSession().then(async (session) => {
     if (!session) return;
+    state.viewerId = session.user.id;
     const { data: profile } = await supabase.from('profiles').select('country').eq('id', session.user.id).single();
     state.viewerCountry = profile?.country ?? null;
 
-    rows.forEach((row) => {
-      if (row.dataset.userId === session.user.id) {
-        row.classList.add('bg-primary/10');
-        const badge = row.querySelector('[data-you-badge]');
-        if (badge) badge.hidden = false;
-      }
-    });
+    root.querySelectorAll('[data-row]').forEach((row) => highlightIfViewer(row, row.dataset.userId));
   });
-
-  applyFilters();
 }

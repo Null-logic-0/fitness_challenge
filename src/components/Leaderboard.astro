@@ -1,24 +1,21 @@
 ---
-import { useTranslations, getLocalizedPath } from '../i18n/utils.js';
-import { supabase } from '../db/supabase.js';
+import { useTranslations, getLocalizedPath, localeTags } from '../i18n/utils.js';
+import { fetchLeaderboardPage } from '../db/leaderboard-query.js';
 import { formatNumber } from '../utils/format.js';
+import { getCountryName } from '../utils/countries.js';
 
 const { lang } = Astro.props;
 const t = useTranslations(lang);
 
-const { data } = await supabase
-  .from('leaderboard')
-  .select('user_id, username, display_name, country, category, result_id, pull_ups, dips, total, status, submitted_at')
-  .order('total', { ascending: false })
-  .limit(200);
-
-const ranked = (data ?? []).map((row, i) => ({ ...row, rank: i + 1 }));
+const { rows, error, hasMore } = await fetchLeaderboardPage();
 
 function initials(name) {
   return (name ?? '?').split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
 }
 
-const podium = ranked.slice(0, 3);
+const podium = rows.slice(0, 3);
+
+const initialState = error ? 'error' : rows.length === 0 ? 'empty' : 'content';
 
 const filterGroups = [
   {
@@ -49,7 +46,13 @@ const filterGroups = [
 const defaults = { scope: 'global', time: 'all', category: 'open' };
 ---
 
-<div id="leaderboard-root">
+<div
+  id="leaderboard-root"
+  data-lang={lang}
+  data-you-label={t('leaderboard.you')}
+  data-has-more={String(hasMore)}
+  data-next-offset={rows.length}
+>
   <div class="flex flex-wrap gap-3">
     {filterGroups.map((fg) => (
       <div class="tabs tabs-boxed inline-flex w-fit bg-base-200" role="tablist" data-filter-group={fg.group}>
@@ -68,88 +71,88 @@ const defaults = { scope: 'global', time: 'all', category: 'open' };
     ))}
   </div>
 
-  {ranked.length === 0 ? (
-    <p class="mt-10 rounded-box border border-base-300 bg-base-200 p-10 text-center text-sm text-base-content/50">
-      {t('leaderboard.noResults')}
-    </p>
-  ) : (
-    <>
-      <!-- Podium -->
-      <div class="mt-10 grid grid-cols-3 items-end gap-3" data-podium>
-        {[podium[1], podium[0], podium[2]].map((athlete, i) => {
-          if (!athlete) return <div />;
-          const place = i === 1 ? 1 : i === 0 ? 2 : 3;
-          const height = place === 1 ? 'pb-8 pt-6' : place === 2 ? 'pb-6 pt-4' : 'pb-4 pt-2';
-          const ring = place === 1 ? 'ring-primary' : 'ring-base-300';
-          return (
-            <a
-              href={getLocalizedPath(lang, `/athletes/${athlete.username}`)}
-              class={`flex flex-col items-center rounded-box border border-base-300 bg-base-200 px-2 text-center focus-ring ${height}`}
-              data-podium-slot={place}
-            >
-              <div class="avatar avatar-placeholder mb-2">
-                <div class={`w-14 rounded-full bg-base-300 text-base-content ring-2 ${ring} ring-offset-2 ring-offset-base-100`}>
-                  <span class="text-lg font-semibold" data-slot-initials>{initials(athlete.display_name)}</span>
-                </div>
-              </div>
-              <p class="font-stat text-lg font-bold text-primary">#{place}</p>
-              <p class="mt-1 truncate text-sm font-semibold" data-slot-name>{athlete.display_name}</p>
-              <p class="text-xs text-base-content/50"><span data-slot-country>{athlete.country ?? ''}</span></p>
-              <p class="font-stat mt-1 text-2xl font-bold" data-slot-total>{formatNumber(lang, athlete.total)}</p>
-            </a>
-          );
-        })}
-      </div>
+  <div data-state="error" hidden={initialState !== 'error'} class="mt-10 rounded-box border border-error/30 bg-error/10 p-10 text-center">
+    <p class="text-sm text-error">{t('leaderboard.loadError')}</p>
+    <button type="button" data-action="retry" class="btn btn-outline btn-sm mt-4 focus-ring">{t('leaderboard.retry')}</button>
+  </div>
 
-      <!-- Table -->
-      <div class="mt-8 overflow-x-auto rounded-box border border-base-300">
-        <table class="table">
-          <thead>
-            <tr class="bg-base-200 text-xs uppercase tracking-wider text-base-content/50">
-              <th class="w-16">{t('leaderboard.rank')}</th>
-              <th>{t('leaderboard.athlete')}</th>
-              <th class="text-right">{t('leaderboard.pullUpsShort')}</th>
-              <th class="text-right">{t('leaderboard.dipsShort')}</th>
-              <th class="text-right">{t('leaderboard.total')}</th>
-            </tr>
-          </thead>
-          <tbody data-rows>
-            {ranked.map((athlete) => (
-              <tr
-                data-row
-                data-user-id={athlete.user_id}
-                data-category={athlete.category}
-                data-submitted-at={athlete.submitted_at}
-                data-country={athlete.country ?? ''}
-              >
-                <td class="font-stat font-bold" data-rank>{athlete.rank}</td>
-                <td>
-                  <a href={getLocalizedPath(lang, `/athletes/${athlete.username}`)} class="flex items-center gap-3 focus-ring rounded-field">
-                    <div class="avatar avatar-placeholder">
-                      <div class="w-8 rounded-full bg-base-300 text-base-content">
-                        <span class="text-xs font-semibold">{initials(athlete.display_name)}</span>
-                      </div>
+  <div data-state="empty" hidden={initialState !== 'empty'} class="mt-10 rounded-box border border-base-300 bg-base-200 p-10 text-center text-sm text-base-content/50">
+    {t('leaderboard.noResults')}
+  </div>
+
+  <div data-state="content" hidden={initialState !== 'content'}>
+    <!-- Podium -->
+    <div class="mt-10 grid grid-cols-3 items-end gap-3" data-podium>
+      {[podium[1], podium[0], podium[2]].map((athlete, i) => {
+        if (!athlete) return <div />;
+        const place = i === 1 ? 1 : i === 0 ? 2 : 3;
+        const height = place === 1 ? 'pb-8 pt-6' : place === 2 ? 'pb-6 pt-4' : 'pb-4 pt-2';
+        const ring = place === 1 ? 'ring-primary' : 'ring-base-300';
+        return (
+          <a
+            href={getLocalizedPath(lang, `/athletes/${athlete.username}`)}
+            class={`flex flex-col items-center rounded-box border border-base-300 bg-base-200 px-2 text-center focus-ring ${height}`}
+            data-podium-slot={place}
+          >
+            <div class="avatar avatar-placeholder mb-2">
+              <div class={`w-14 rounded-full bg-base-300 text-base-content ring-2 ${ring} ring-offset-2 ring-offset-base-100`}>
+                <span class="text-lg font-semibold" data-slot-initials>{initials(athlete.display_name)}</span>
+              </div>
+            </div>
+            <p class="font-stat text-lg font-bold text-primary">#{place}</p>
+            <p class="mt-1 truncate text-sm font-semibold" data-slot-name>{athlete.display_name}</p>
+            <p class="text-xs text-base-content/50"><span data-slot-country>{getCountryName(athlete.country, localeTags[lang])}</span></p>
+            <p class="font-stat mt-1 text-2xl font-bold" data-slot-total>{formatNumber(lang, athlete.total)}</p>
+          </a>
+        );
+      })}
+    </div>
+
+    <!-- Table -->
+    <div class="mt-8 overflow-x-auto rounded-box border border-base-300">
+      <table class="table">
+        <thead>
+          <tr class="bg-base-200 text-xs uppercase tracking-wider text-base-content/50">
+            <th class="w-16">{t('leaderboard.rank')}</th>
+            <th>{t('leaderboard.athlete')}</th>
+            <th class="text-right">{t('leaderboard.pullUpsShort')}</th>
+            <th class="text-right">{t('leaderboard.dipsShort')}</th>
+            <th class="text-right">{t('leaderboard.total')}</th>
+          </tr>
+        </thead>
+        <tbody data-rows>
+          {rows.map((athlete, i) => (
+            <tr data-row data-user-id={athlete.user_id}>
+              <td class="font-stat font-bold">{i + 1}</td>
+              <td>
+                <a href={getLocalizedPath(lang, `/athletes/${athlete.username}`)} class="flex items-center gap-3 focus-ring rounded-field">
+                  <div class="avatar avatar-placeholder">
+                    <div class="w-8 rounded-full bg-base-300 text-base-content">
+                      <span class="text-xs font-semibold">{initials(athlete.display_name)}</span>
                     </div>
-                    <span class="font-medium">
-                      {athlete.display_name}
-                      <span data-you-badge hidden class="badge badge-primary badge-sm ml-2">{t('leaderboard.you')}</span>
-                    </span>
-                    <span class="text-base-content/40">{athlete.country}</span>
-                  </a>
-                </td>
-                <td class="font-stat text-right">{formatNumber(lang, athlete.pull_ups)}</td>
-                <td class="font-stat text-right">{formatNumber(lang, athlete.dips)}</td>
-                <td class="font-stat text-right font-bold">{formatNumber(lang, athlete.total)}</td>
-              </tr>
-            ))}
-            <tr data-no-results hidden>
-              <td colspan="5" class="py-10 text-center text-sm text-base-content/50">{t('leaderboard.noResults')}</td>
+                  </div>
+                  <span class="font-medium">
+                    {athlete.display_name}
+                    <span data-you-badge hidden class="badge badge-primary badge-sm ml-2">{t('leaderboard.you')}</span>
+                  </span>
+                  <span class="text-base-content/40">{getCountryName(athlete.country, localeTags[lang])}</span>
+                </a>
+              </td>
+              <td class="font-stat text-right">{formatNumber(lang, athlete.pull_ups)}</td>
+              <td class="font-stat text-right">{formatNumber(lang, athlete.dips)}</td>
+              <td class="font-stat text-right font-bold">{formatNumber(lang, athlete.total)}</td>
             </tr>
-          </tbody>
-        </table>
-      </div>
-    </>
-  )}
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    <div data-sentinel class="h-1"></div>
+    <div data-loading-more hidden class="mt-4 flex justify-center">
+      <span class="loading loading-spinner text-primary" aria-hidden="true"></span>
+      <span class="sr-only">{t('leaderboard.loadingMore')}</span>
+    </div>
+  </div>
 </div>
 
 <script>

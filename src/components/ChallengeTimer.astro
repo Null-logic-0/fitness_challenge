@@ -23,6 +23,10 @@ const loginPath = `${getLocalizedPath(lang, '/login')}?redirect=${encodeURICompo
     <button type="button" data-action="start" class="btn btn-primary btn-lg mt-8 w-full focus-ring">
       {t('challenge.start')}
     </button>
+    <p class="mt-4 text-sm text-base-content/50">
+      {t('challenge.alreadyRecordedPrefix')}{' '}
+      <a href={submitPath} class="font-semibold text-primary focus-ring rounded-field">{t('challenge.submitDirectlyLink')}</a>
+    </p>
   </section>
 
   <!-- GET READY -->

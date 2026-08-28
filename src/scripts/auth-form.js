@@ -62,6 +62,8 @@ export function initAuthForm(root) {
             password,
             displayName: form.displayName.value.trim(),
             country: form.country?.value.trim(),
+            ageRange: form.ageRange?.value,
+            category: form.gender?.value,
           })
         : await signIn({ email, password });
 

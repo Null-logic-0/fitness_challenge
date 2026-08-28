@@ -7,13 +7,20 @@ export async function getSession() {
 }
 
 /**
- * @param {{email: string, password: string, displayName: string, country?: string}} params
+ * @param {{email: string, password: string, displayName: string, country?: string, ageRange?: string, category?: 'open'|'men'|'women'}} params
  */
-export function signUp({ email, password, displayName, country }) {
+export function signUp({ email, password, displayName, country, ageRange, category }) {
   return supabase.auth.signUp({
     email,
     password,
-    options: { data: { display_name: displayName, country: country || null } },
+    options: {
+      data: {
+        display_name: displayName,
+        country: country || null,
+        age_range: ageRange || null,
+        category: category || 'open',
+      },
+    },
   });
 }
 
@@ -24,6 +31,22 @@ export function signIn({ email, password }) {
 
 export function signOut() {
   return supabase.auth.signOut();
+}
+
+/**
+ * Updates auth-level user metadata (display_name/country) so the navbar and
+ * anywhere else reading `session.user.user_metadata` stays in sync with a
+ * profile edit made on the settings page — without this, the old name would
+ * keep showing until the next full login.
+ * @param {{displayName?: string, country?: string}} params
+ */
+export function updateAuthMetadata({ displayName, country }) {
+  return supabase.auth.updateUser({ data: { display_name: displayName, country } });
+}
+
+/** @param {string} newPassword */
+export function updatePassword(newPassword) {
+  return supabase.auth.updateUser({ password: newPassword });
 }
 
 /** @param {(session: import('@supabase/supabase-js').Session|null) => void} callback */

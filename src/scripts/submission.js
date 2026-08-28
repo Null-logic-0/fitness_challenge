@@ -4,14 +4,17 @@ import { completeInvite } from './invite.js';
 import { supabase } from '../db/supabase.js';
 
 /**
- * Wires up the #submission-root element on /submit: resolves the just-completed
- * attempt (query string for an already-authenticated user, or the localStorage
- * "pending result" left behind when an unauthenticated visitor just registered
- * or logged in), gates the whole form behind an auth check, validates the
- * YouTube link, and inserts the result into Supabase. The server — not this
- * script — is what actually enforces the total and the row's immutability
- * (generated column + RLS, see supabase/migrations/0001_init.sql); this only
- * gives the user a fast, friendly error before that round-trip.
+ * Wires up the #submission-root element on /submit. Two ways to arrive
+ * with numbers already filled in — a query string (already-authenticated
+ * user finishing the site's timer) or the localStorage "pending result"
+ * left behind when an unauthenticated visitor just registered or logged in
+ * — but the pull-ups/dips fields are always editable, not read-only:
+ * someone who already recorded a full attempt on their own (own stopwatch,
+ * no site timer at all) needs to be able to just type their count and drop
+ * in the video link. The server — not this script — is what actually
+ * enforces the total and the row's immutability (generated column + RLS,
+ * see supabase/migrations/0001_init.sql); this only gives the user a fast,
+ * friendly error before that round-trip.
  * @param {HTMLElement} root
  */
 export function initSubmission(root) {
@@ -54,11 +57,21 @@ export function initSubmission(root) {
 
   const attempt = peekAttempt();
 
-  root.querySelectorAll('[data-attempt-pullups]').forEach((el) => { el.textContent = String(attempt?.pullUps ?? 0); });
-  root.querySelectorAll('[data-attempt-dips]').forEach((el) => { el.textContent = String(attempt?.dips ?? 0); });
-  root.querySelectorAll('[data-attempt-total]').forEach((el) => {
-    el.textContent = String((attempt?.pullUps ?? 0) + (attempt?.dips ?? 0));
-  });
+  const pullUpsInput = root.querySelector('[data-input="pullups"]');
+  const dipsInput = root.querySelector('[data-input="dips"]');
+  const totalDisplay = root.querySelector('[data-computed-total]');
+
+  if (attempt) {
+    pullUpsInput.value = String(attempt.pullUps);
+    dipsInput.value = String(attempt.dips);
+  }
+
+  function refreshTotal() {
+    const total = Math.max(0, Number(pullUpsInput.value) || 0) + Math.max(0, Number(dipsInput.value) || 0);
+    if (totalDisplay) totalDisplay.textContent = String(total);
+  }
+  refreshTotal();
+  [pullUpsInput, dipsInput].forEach((input) => input.addEventListener('input', refreshTotal));
 
   const youtubeInput = root.querySelector('[data-input="youtube"]');
   const youtubeError = root.querySelector('[data-youtube-error]');
@@ -75,19 +88,15 @@ export function initSubmission(root) {
       showPanel('signInRequired');
       return;
     }
-    if (!attempt) {
-      // Signed in but nothing to submit (e.g. a stale bookmark) — send them
-      // back to start a real attempt rather than showing an empty form.
-      window.location.replace(root.dataset.challengePath || `/${lang}/challenge`);
-      return;
-    }
     // Now that we're committed to using it, consume the one-time pending
     // result so a later visit to /submit doesn't resurrect a stale attempt.
-    if (attempt.source === 'pending') clearPendingResult();
+    if (attempt?.source === 'pending') clearPendingResult();
     showPanel('form');
 
     form?.addEventListener('submit', async (event) => {
       event.preventDefault();
+      const pullUps = Math.max(0, Number(pullUpsInput.value) || 0);
+      const dips = Math.max(0, Number(dipsInput.value) || 0);
       const url = youtubeInput.value.trim();
       const videoId = extractYouTubeId(url);
 
@@ -105,8 +114,8 @@ export function initSubmission(root) {
         .from('results')
         .insert({
           user_id: session.user.id,
-          pull_ups: attempt.pullUps,
-          dips: attempt.dips,
+          pull_ups: pullUps,
+          dips,
           youtube_url: url,
           youtube_video_id: videoId,
         })

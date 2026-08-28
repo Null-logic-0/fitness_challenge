@@ -21,6 +21,9 @@ pnpm-debug.log*
 # raw source footage (large, unoptimized — web-ready copies live in public/videos/)
 raw-videos/
 
+# local Supabase CLI cache (machine-specific, not project source)
+supabase/.temp/
+
 # macOS-specific files
 .DS_Store
 

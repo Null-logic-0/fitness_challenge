@@ -1,0 +1,333 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import Navbar from "../../../components/Navbar.astro";
+import Footer from "../../../components/Footer.astro";
+import {
+  useTranslations,
+  getDictionary,
+  localizedStaticPaths,
+} from "../../../i18n/utils.js";
+
+export function getStaticPaths() {
+  return localizedStaticPaths();
+}
+
+const { lang } = Astro.params;
+const t = useTranslations(lang);
+const dict = getDictionary(lang).admin;
+
+const labels = {
+  statusPending: dict.statusPending,
+  statusVerified: dict.statusVerified,
+  statusRejected: dict.statusRejected,
+  watchVideo: dict.watchVideo,
+  editButton: dict.editButton,
+  deleteButton: dict.deleteButton,
+  editTitle: dict.editTitle,
+  createTitle: dict.createTitle,
+  invalidYoutubeUrl: dict.invalidYoutubeUrl,
+  saveError: dict.saveError,
+  createError: dict.createError,
+  deleteError: dict.deleteError,
+  userNotFound: dict.userNotFound,
+};
+---
+
+<Layout
+  lang={lang}
+  title={`${t("admin.title")} — 5MIN`}
+  description={t("admin.subtitle")}
+  path="/admin"
+>
+  <Navbar lang={lang} path="/admin" />
+  <main id="main-content" class="mx-auto max-w-5xl px-4 py-10 sm:px-6 md:py-14">
+    <div id="admin-root" data-lang={lang} data-labels={JSON.stringify(labels)}>
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p
+            class="font-stat text-xs font-semibold tracking-[0.2em] text-primary"
+          >
+            {t("admin.navLabel").toUpperCase()}
+          </p>
+          <h1 class="mt-3 text-3xl font-bold tracking-tight">
+            {t("admin.title")}
+          </h1>
+          <p class="mt-1 text-base-content/60">{t("admin.subtitle")}</p>
+        </div>
+        <button
+          type="button"
+          data-action="open-create"
+          hidden
+          class="btn btn-primary focus-ring">{t("admin.createButton")}</button
+        >
+      </div>
+
+      <!-- CHECKING ACCESS -->
+      <div data-state="checking" class="mt-16 flex justify-center">
+        <span
+          class="loading loading-spinner loading-lg text-primary"
+          aria-hidden="true"></span>
+        <span class="sr-only">{t("common.loading")}</span>
+      </div>
+
+      <!-- ACCESS DENIED -->
+      <div
+        data-state="denied"
+        hidden
+        class="mt-16 rounded-box border border-base-300 bg-base-200 p-12 text-center"
+      >
+        <p class="text-xl font-semibold">{t("admin.accessDeniedTitle")}</p>
+        <p class="mt-2 text-sm text-base-content/60">
+          {t("admin.accessDeniedBody")}
+        </p>
+      </div>
+
+      <!-- LOADING RESULTS -->
+      <div
+        data-state="loading"
+        hidden
+        class="mt-16 flex flex-col items-center gap-3"
+      >
+        <span
+          class="loading loading-spinner loading-lg text-primary"
+          aria-hidden="true"></span>
+        <p class="text-sm text-base-content/60">{t("admin.loading")}</p>
+      </div>
+
+      <!-- ERROR -->
+      <div
+        data-state="error"
+        hidden
+        class="mt-16 rounded-box border border-error/30 bg-error/10 p-12 text-center"
+      >
+        <p class="text-sm text-error">{t("admin.loadError")}</p>
+        <button
+          type="button"
+          data-action="retry"
+          class="btn btn-outline btn-sm mt-4 focus-ring"
+          >{t("admin.retry")}</button
+        >
+      </div>
+
+      <!-- EMPTY -->
+      <div
+        data-state="empty"
+        hidden
+        class="mt-16 rounded-box border border-base-300 bg-base-200 p-12 text-center"
+      >
+        <p class="text-xl font-semibold">{t("admin.emptyTitle")}</p>
+        <p class="mt-2 text-sm text-base-content/60">{t("admin.emptyBody")}</p>
+      </div>
+
+      <!-- CONTENT -->
+      <div data-state="content" hidden>
+        <div class="mt-8 overflow-x-auto rounded-box border border-base-300">
+          <table class="table">
+            <thead>
+              <tr
+                class="bg-base-200 text-xs uppercase tracking-wider text-base-content/50"
+              >
+                <th>{t("admin.colAthlete")}</th>
+                <th class="text-right">{t("admin.colPullUps")}</th>
+                <th class="text-right">{t("admin.colDips")}</th>
+                <th class="text-right">{t("admin.colTotal")}</th>
+                <th>{t("admin.colStatus")}</th>
+                <th>{t("admin.colVideo")}</th>
+                <th>{t("admin.colSubmitted")}</th>
+                <th class="text-right">{t("admin.colActions")}</th>
+              </tr>
+            </thead>
+            <tbody data-rows></tbody>
+          </table>
+        </div>
+
+        <div class="mt-6 flex justify-center">
+          <button
+            type="button"
+            data-action="load-more"
+            hidden
+            class="btn btn-outline focus-ring">{t("admin.loadMore")}</button
+          >
+        </div>
+      </div>
+    </div>
+  </main>
+  <Footer lang={lang} />
+
+  <!-- Create / Edit dialog -->
+  <dialog id="admin-edit-dialog" class="modal">
+    <div class="modal-box">
+      <h3 data-dialog-title class="text-lg font-bold">
+        {t("admin.editTitle")}
+      </h3>
+
+      <p
+        data-form-error
+        hidden
+        role="alert"
+        class="mt-4 rounded-field border border-error/30 bg-error/10 px-4 py-3 text-sm text-error"
+      >
+      </p>
+
+      <form method="dialog" class="mt-4 flex flex-col gap-4">
+        <label data-username-field class="form-control" hidden>
+          <p
+            class="label-text text-xs font-semibold uppercase tracking-wider text-base-content/50"
+            >{t("admin.usernameLabel")}
+        </p>
+          <input
+            name="username"
+            type="text"
+            class="input input-bordered mt-1 focus-ring"
+          />
+          <p class="mt-1 text-xs text-base-content/40"
+            >{t("admin.usernameHelp")}
+            </p>
+        </label>
+
+        <div class="grid grid-cols-2 gap-3">
+          <label class="form-control">
+            <span
+              class="label-text text-xs font-semibold uppercase tracking-wider text-base-content/50"
+            >
+              {t("admin.pullUpsLabel")}
+            </span>
+            <input
+              name="pullUps"
+              type="number"
+              min="0"
+              required
+              class="input input-bordered mt-1 focus-ring"
+            />
+          </label>
+          <label class="form-control">
+            <span
+              class="label-text text-xs font-semibold uppercase tracking-wider text-base-content/50"
+              >{t("admin.dipsLabel")}</span
+            >
+            <input
+              name="dips"
+              type="number"
+              min="0"
+              required
+              class="input input-bordered mt-1 focus-ring"
+            />
+          </label>
+        </div>
+
+        <label class="form-control">
+          <p
+            class="label-text text-xs font-semibold uppercase tracking-wider text-base-content/50"
+          >
+            {t("admin.youtubeUrlLabel")}
+          </p>
+          <input
+            name="youtubeUrl"
+            type="url"
+            required
+            class="input input-bordered mt-1 focus-ring"
+          />
+        </label>
+
+        <label class="form-control">
+          <p
+            class="label-text text-xs font-semibold uppercase tracking-wider text-base-content/50"
+          >
+            {t("admin.statusLabel")}
+          </p>
+          <select name="status" class="select select-bordered mt-1 focus-ring">
+            <option value="pending">{t("admin.statusPending")}</option>
+            <option value="verified">{t("admin.statusVerified")}</option>
+            <option value="rejected">{t("admin.statusRejected")}</option>
+          </select>
+        </label>
+
+        <label class="form-control">
+          <p
+            class="label-text text-xs font-semibold uppercase tracking-wider text-base-content/50"
+          >
+            {t("admin.reasonLabel")}
+          </p>
+          <input
+            name="reason"
+            type="text"
+            required
+            class="input input-bordered mt-1 focus-ring"
+          />
+          <p class="mt-1 text-xs text-base-content/40"
+            >{t("admin.reasonHelp")}
+            </p>
+        </label>
+
+        <div class="modal-action">
+          <button
+            type="button"
+            class="btn btn-ghost focus-ring"
+            data-action="cancel-dialog">{t("admin.cancel")}</button
+          >
+          <button type="submit" class="btn btn-primary focus-ring"
+            >{t("admin.save")}</button
+          >
+        </div>
+      </form>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button>{t("common.close")}</button>
+    </form>
+  </dialog>
+
+  <!-- Delete confirm dialog -->
+  <dialog id="admin-delete-dialog" class="modal">
+    <div class="modal-box">
+      <h3 class="text-lg font-bold">{t("admin.deleteTitle")}</h3>
+      <p class="mt-2 text-sm text-base-content/60">
+        {t("admin.deleteConfirmBody")}
+      </p>
+
+      <p
+        data-form-error
+        hidden
+        role="alert"
+        class="mt-4 rounded-field border border-error/30 bg-error/10 px-4 py-3 text-sm text-error"
+      >
+      </p>
+
+      <form method="dialog" class="mt-4 flex flex-col gap-4">
+        <label class="form-control">
+          <p
+            class="label-text text-xs font-semibold uppercase tracking-wider text-base-content/50"
+            >{t("admin.reasonLabel")}</p>
+          <input
+            name="reason"
+            type="text"
+            required
+            class="input input-bordered mt-1 focus-ring"
+          />
+          <p class="mt-1 text-xs text-base-content/40"
+            >{t("admin.reasonHelp")}</p
+          >
+        </label>
+
+        <div class="modal-action">
+          <button
+            type="button"
+            class="btn btn-ghost focus-ring"
+            data-action="cancel-dialog">{t("admin.cancel")}</button
+          >
+          <button type="submit" class="btn btn-error focus-ring"
+            >{t("admin.confirmDelete")}</button
+          >
+        </div>
+      </form>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button>{t("common.close")}</button>
+    </form>
+  </dialog>
+</Layout>
+
+<script>
+  import { initAdminPanel } from "../../../scripts/admin.js";
+  const root = document.getElementById("admin-root");
+  if (root) initAdminPanel(root);
+</script>

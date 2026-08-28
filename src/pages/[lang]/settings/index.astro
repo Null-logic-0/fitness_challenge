@@ -1,0 +1,252 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import Navbar from "../../../components/Navbar.astro";
+import Footer from "../../../components/Footer.astro";
+import {
+  useTranslations,
+  getDictionary,
+  localizedStaticPaths,
+  getLocalizedPath,
+  localeTags,
+} from "../../../i18n/utils.js";
+import { getCountryOptions } from "../../../utils/countries.js";
+
+export function getStaticPaths() {
+  return localizedStaticPaths();
+}
+
+const { lang } = Astro.params;
+const t = useTranslations(lang);
+const dict = getDictionary(lang);
+const countryOptions = getCountryOptions(localeTags[lang]);
+
+const labels = {
+  profileSaveError: dict.settings.profileSaveError,
+  passwordSaveError: dict.settings.passwordSaveError,
+  passwordMismatch: dict.settings.passwordMismatch,
+};
+
+const loginPath = getLocalizedPath(lang, "/login");
+---
+
+<Layout
+  lang={lang}
+  title={`${t("settings.title")} — 5MIN`}
+  description={t("settings.subtitle")}
+  path="/settings"
+>
+  <Navbar lang={lang} path="/settings" />
+  <main id="main-content" class="mx-auto max-w-2xl px-4 py-10 sm:px-6 md:py-14">
+    <div
+      id="settings-root"
+      data-labels={JSON.stringify(labels)}
+      data-login-path={loginPath}
+    >
+      <p class="font-stat text-xs font-semibold tracking-[0.2em] text-primary">
+        {t("settings.navLabel").toUpperCase()}
+      </p>
+      <h1 class="mt-3 text-3xl font-bold tracking-tight">
+        {t("settings.title")}
+      </h1>
+      <p class="mt-1 text-base-content/60">{t("settings.subtitle")}</p>
+
+      <!-- LOADING -->
+      <div data-state="loading" class="mt-16 flex flex-col items-center gap-3">
+        <span
+          class="loading loading-spinner loading-lg text-primary"
+          aria-hidden="true"></span>
+        <p class="text-sm text-base-content/60">{t("settings.loading")}</p>
+      </div>
+
+      <!-- ERROR -->
+      <div
+        data-state="error"
+        hidden
+        class="mt-16 rounded-box border border-error/30 bg-error/10 p-12 text-center"
+      >
+        <p class="text-sm text-error">{t("settings.loadError")}</p>
+        <button
+          type="button"
+          data-action="retry"
+          class="btn btn-outline btn-sm mt-4 focus-ring"
+          >{t("settings.retry")}</button
+        >
+      </div>
+
+      <!-- CONTENT -->
+      <div data-state="content" hidden class="mt-10 flex flex-col gap-8">
+        <section class="rounded-box border border-base-300 bg-base-200 p-6">
+          <h2
+            class="text-sm font-semibold uppercase tracking-wider text-base-content/60"
+          >
+            {t("settings.profileSectionTitle")}
+          </h2>
+
+          <p
+            data-profile-error
+            hidden
+            role="alert"
+            class="mt-4 rounded-field border border-error/30 bg-error/10 px-4 py-3 text-sm text-error"
+          >
+          </p>
+          <p
+            data-profile-success
+            hidden
+            role="status"
+            class="mt-4 rounded-field border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"
+          >
+            {t("settings.profileSaved")}
+          </p>
+
+          <form data-profile-form class="mt-4 flex flex-col gap-4">
+            <label class="form-control">
+              <p
+                class="label-text text-xs font-semibold uppercase tracking-wider text-base-content/50"
+              >
+                {t("auth.displayNameLabel")}
+              </p>
+              <input
+                name="displayName"
+                type="text"
+                required
+                autocomplete="name"
+                class="input input-bordered mt-1 focus-ring"
+              />
+            </label>
+
+            <label class="form-control">
+              <p
+                class="label-text text-xs font-semibold uppercase tracking-wider text-base-content/50"
+              >
+                {t("auth.countryLabel")}
+              </p>
+              <select
+                name="country"
+                required
+                autocomplete="country"
+                class="select select-bordered mt-1 focus-ring"
+              >
+                <option value="" disabled>{t("auth.countryPlaceholder")}</option
+                >
+                {
+                  countryOptions.map((c) => (
+                    <option value={c.code}>{c.name}</option>
+                  ))
+                }
+              </select>
+            </label>
+
+            <label class="form-control">
+              <p
+                class="label-text text-xs font-semibold uppercase tracking-wider text-base-content/50"
+              >
+                {t("auth.ageRangeLabel")}
+              </p>
+              <select
+                name="ageRange"
+                required
+                class="select select-bordered mt-1 focus-ring"
+              >
+                <option value="18-24">18–24</option>
+                <option value="25-34">25–34</option>
+                <option value="35-44">35–44</option>
+                <option value="45-54">45–54</option>
+                <option value="55+">55+</option>
+              </select>
+            </label>
+
+            <label class="form-control">
+              <p
+                class="label-text text-xs font-semibold uppercase tracking-wider text-base-content/50"
+              >
+                {t("auth.genderLabel")}
+              </p>
+              <select
+                name="gender"
+                required
+                class="select select-bordered mt-1 focus-ring"
+              >
+                <option value="men">{t("auth.genderMale")}</option>
+                <option value="women">{t("auth.genderFemale")}</option>
+                <option value="open">{t("auth.genderPreferNotToSay")}</option>
+              </select>
+            </label>
+
+            <button type="submit" class="btn btn-primary mt-2 focus-ring"
+              >{t("settings.saveButton")}</button
+            >
+          </form>
+        </section>
+
+        <section class="rounded-box border border-base-300 bg-base-200 p-6">
+          <h2
+            class="text-sm font-semibold uppercase tracking-wider text-base-content/60"
+          >
+            {t("settings.passwordSectionTitle")}
+          </h2>
+
+          <p
+            data-password-error
+            hidden
+            role="alert"
+            class="mt-4 rounded-field border border-error/30 bg-error/10 px-4 py-3 text-sm text-error"
+          >
+          </p>
+          <p
+            data-password-success
+            hidden
+            role="status"
+            class="mt-4 rounded-field border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"
+          >
+            {t("settings.passwordSaved")}
+          </p>
+
+          <form data-password-form class="mt-4 flex flex-col gap-4">
+            <label class="form-control">
+              <p
+                class="label-text text-xs font-semibold uppercase tracking-wider text-base-content/50"
+              >
+                {t("settings.newPasswordLabel")}
+              </p>
+              <input
+                name="newPassword"
+                type="password"
+                required
+                minlength="6"
+                autocomplete="new-password"
+                class="input input-bordered mt-1 focus-ring"
+              />
+            </label>
+
+            <label class="form-control">
+              <p
+                class="label-text text-xs font-semibold uppercase tracking-wider text-base-content/50"
+              >
+                {t("settings.confirmPasswordLabel")}
+              </p>
+              <input
+                name="confirmPassword"
+                type="password"
+                required
+                minlength="6"
+                autocomplete="new-password"
+                class="input input-bordered mt-1 focus-ring"
+              />
+            </label>
+
+            <button type="submit" class="btn btn-primary mt-2 focus-ring"
+              >{t("settings.updatePasswordButton")}</button
+            >
+          </form>
+        </section>
+      </div>
+    </div>
+  </main>
+  <Footer lang={lang} />
+</Layout>
+
+<script>
+  import { initSettings } from "../../../scripts/settings.js";
+  const root = document.getElementById("settings-root");
+  if (root) initSettings(root);
+</script>

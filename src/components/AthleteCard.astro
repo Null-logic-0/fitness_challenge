@@ -1,6 +1,7 @@
 ---
-import { useTranslations, getLocalizedPath } from '../i18n/utils.js';
+import { useTranslations, getLocalizedPath, localeTags } from '../i18n/utils.js';
 import { formatNumber } from '../utils/format.js';
+import { getCountryName } from '../utils/countries.js';
 
 /**
  * Compact athlete summary card, used on the athletes index.
@@ -32,7 +33,7 @@ function initials(name) {
         <span class="badge badge-info badge-sm shrink-0" title={t('athlete.verified')}>✓</span>
       )}
     </div>
-    <p class="text-xs text-base-content/50">{athlete.country && <>{athlete.country} · </>}#{athlete.rank}</p>
+    <p class="text-xs text-base-content/50">{athlete.country && <>{getCountryName(athlete.country, localeTags[lang])} · </>}#{athlete.rank}</p>
   </div>
   <div class="text-right">
     <p class="font-stat text-2xl font-bold">{formatNumber(lang, athlete.total)}</p>
